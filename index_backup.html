@@ -1,0 +1,2372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AutoPDV Pro - Gestão & Estoque</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+      --danger-light: #fef2f2;
+      --warning: #f59e0b;
+      --warning-light: #fffbeb;
+      --success: #10b981;
+      --success-light: #ecfdf5;
+      --radius: 10px;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font); }
+    body { background-color: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+
+    /* Layout & Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    .brand-area { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-logo { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; background: var(--primary-light); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--primary); font-size: 1.1rem; }
+    .brand-title { font-size: 1.2rem; font-weight: 700; line-height: 1.2; }
+    .brand-tag { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* Navigation Bar */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 0 0.5rem;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    .nav-btn {
+      padding: 0.85rem 1rem;
+      border: none;
+      background: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    .nav-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    /* Container */
+    main {
+      flex: 1;
+      padding: 1rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.15s ease-in; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Card System */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+      box-shadow: var(--shadow);
+      margin-bottom: 1rem;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .metric-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      border-left: 4px solid var(--primary);
+    }
+    .metric-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
+    .metric-value { font-size: 1.4rem; font-weight: 800; margin-top: 0.35rem; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.05s;
+      min-height: 42px;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; border-color: var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--bg); }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.8rem; min-height: 32px; border-radius: 6px; }
+    .btn-block { width: 100%; }
+
+    /* Forms */
+    .form-group { margin-bottom: 1rem; }
+    .form-label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: var(--text); }
+    .form-control {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-light); }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
+    .required-mark { color: var(--danger); }
+
+    /* Tables */
+    .table-responsive { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+    th { padding: 0.75rem 0.6rem; background: var(--bg); font-weight: 700; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 0.75rem 0.6rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:hover { background-color: #f1f5f9; }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-danger { background: var(--danger-light); color: var(--danger); }
+    .badge-warning { background: var(--warning-light); color: var(--warning); }
+    .badge-success { background: var(--success-light); color: var(--success); }
+    .badge-primary { background: var(--primary-light); color: var(--primary); }
+
+    /* Modal System */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.55);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      backdrop-filter: blur(2px);
+    }
+    .modal-backdrop.active { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 580px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+    .modal-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+    .modal-body { padding: 1.25rem; overflow-y: auto; flex: 1; }
+    .modal-footer { padding: 1rem 1.25rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.75rem; background: var(--bg); }
+    .modal-close-btn { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted); line-height: 1; }
+
+    /* PDV Layout */
+    .pdv-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.25rem;
+    }
+    @media (max-width: 860px) {
+      .pdv-grid { grid-template-columns: 1fr; }
+    }
+    .cart-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .cart-items { flex: 1; overflow-y: auto; max-height: 380px; padding: 0.75rem; border-bottom: 1px solid var(--border); }
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .cart-item:last-child { border-bottom: none; }
+    .cart-summary { padding: 1rem; background: var(--bg); border-radius: 0 0 var(--radius) var(--radius); }
+
+    /* Autocomplete dropdown */
+    .autocomplete-wrapper { position: relative; }
+    .autocomplete-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-top: 4px;
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 50;
+      box-shadow: var(--shadow);
+    }
+    .autocomplete-item {
+      padding: 0.65rem 0.85rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .autocomplete-item:hover { background-color: var(--primary-light); }
+
+    /* Receipt print preview styling */
+    #printReceipt {
+      font-family: 'Courier New', Courier, monospace;
+      background: white;
+      color: black;
+      padding: 1.5rem;
+      border: 1px dashed #ccc;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    @media print {
+      body * { visibility: hidden; }
+      #receiptModal, #receiptModal * { visibility: visible; }
+      #receiptModal { position: absolute; left: 0; top: 0; width: 100%; background: white; }
+      .modal-footer, .modal-header { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header>
+    <div class="brand-area">
+      <div id="brandLogoContainer" class="brand-logo">🚲</div>
+      <div>
+        <div class="brand-title" id="appStoreName">Oficina & Loja Pro</div>
+        <div class="brand-tag" id="appStoreSegment">Sistema de Gestão & PDV</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:0.5rem; align-items:center;">
+      <button class="btn btn-primary btn-sm" onclick="app.showTab('pdv')">⚡ Abrir PDV [F2]</button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav>
+    <button class="nav-btn active" onclick="app.showTab('dashboard')">📊 Dashboard</button>
+    <button class="nav-btn" onclick="app.showTab('pdv')">🛒 Frente de Caixa (PDV)</button>
+    <button class="nav-btn" onclick="app.showTab('estoque')">📦 Estoque & Catálogo</button>
+    <button class="nav-btn" onclick="app.showTab('clientes')">👥 Clientes</button>
+    <button class="nav-btn" onclick="app.showTab('vendas')">📜 Histórico Vendas</button>
+    <button class="nav-btn" onclick="app.showTab('config')">⚙️ Configurações</button>
+  </nav>
+
+  <!-- Main View -->
+  <main>
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="tab-content active">
+      <div class="metrics-grid">
+        <div class="metric-card" style="border-left-color: var(--primary);">
+          <div class="metric-title">Vendas Hoje</div>
+          <div class="metric-value" id="dashSalesToday">R$ 0,00</div>
+          <small id="dashSalesTodayCount" class="text-muted">0 vendas</small>
+        </div>
+        <div class="metric-card" style="border-left-color: #06b6d4;">
+          <div class="metric-title">Vendas do Mês</div>
+          <div class="metric-value" id="dashSalesMonth">R$ 0,00</div>
+          <small id="dashSalesMonthCount" class="text-muted">0 vendas</small>
+        </div>
+        <div class="metric-card" style="border-left-color: var(--danger);">
+          <div class="metric-title">A Receber (Fiado)</div>
+          <div class="metric-value" id="dashTotalReceivable" style="color: var(--danger);">R$ 0,00</div>
+          <small id="dashDebtorsCount" class="text-muted">0 clientes pendentes</small>
+        </div>
+        <div class="metric-card" style="border-left-color: var(--success);">
+          <div class="metric-title">Valor em Estoque (Venda)</div>
+          <div class="metric-value" id="dashInventoryValue">R$ 0,00</div>
+          <small id="dashInventoryItems" class="text-muted">0 itens físicos</small>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+        
+        <!-- Alertas de Estoque Baixo -->
+        <div class="card">
+          <div class="card-title">
+            <span>⚠️ Alertas de Estoque Baixo</span>
+            <span class="badge badge-danger" id="lowStockBadge">0 itens</span>
+          </div>
+          <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Item</th>
+                  <th>Atual</th>
+                  <th>Mín.</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="lowStockTableBody">
+                <tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Nenhum item em nível crítico</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Clientes Devendo (Contas a Receber) -->
+        <div class="card">
+          <div class="card-title">
+            <span>⏳ Clientes com Saldo Devedor</span>
+            <span class="badge badge-warning" id="debtorsBadge">0 clientes</span>
+          </div>
+          <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Telefone</th>
+                  <th>Devendo</th>
+                  <th>Ação</th>
+                </tr>
+              </thead>
+              <tbody id="debtorsTableBody">
+                <tr><td colspan="4" style="text-align:center; color: var(--text-muted);">Nenhum débito pendente</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Mural de Lembretes / Avisos da Oficina -->
+      <div class="card" style="margin-top: 1rem;">
+        <div class="card-title">
+          <span>📌 Mural de Lembretes e Avisos Rápidos</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <input type="text" id="newReminderInput" class="form-control" placeholder="Ex: Ligar p/ distribuidor de correntes; Revisar bike Scott do Carlos..." onkeypress="if(event.key==='Enter') app.addReminder()">
+          <button class="btn btn-primary" onclick="app.addReminder()">Adicionar</button>
+        </div>
+        <div id="remindersList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <!-- Items inserted dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- PDV (FRENTE DE CAIXA) -->
+    <section id="pdv" class="tab-content">
+      <div class="pdv-grid">
+        <!-- Coluna de Seleção de Itens e Cliente -->
+        <div>
+          <!-- Cliente Selecionado -->
+          <div class="card">
+            <div class="card-title">
+              <span>👤 Cliente da Venda</span>
+              <button class="btn btn-outline btn-sm" onclick="app.openQuickClientModal()">+ Cadastro Rápido</button>
+            </div>
+            <div class="autocomplete-wrapper">
+              <input type="text" id="pdvCustomerSearch" class="form-control" placeholder="Buscar cliente por nome ou WhatsApp... (ou deixe vazio para Consumidor Padrão)" autocomplete="off" oninput="app.searchCustomerPDV(this.value)">
+              <div id="pdvCustomerDropdown" class="autocomplete-list" style="display:none;"></div>
+            </div>
+            <div id="pdvSelectedCustomerBadge" style="margin-top: 0.5rem; display:none;">
+              <span class="badge badge-primary" style="font-size:0.85rem; padding: 0.35rem 0.6rem;">
+                Cliente Selecionado: <strong id="pdvCustomerName">Nome</strong>
+                <span id="pdvCustomerDebtSpan" style="color:#fee2e2; margin-left: 6px;"></span>
+                <span style="cursor:pointer; margin-left:8px;" onclick="app.clearPDVCustomer()">✖</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Busca e Inclusão de Produtos/Serviços -->
+          <div class="card">
+            <div class="card-title">
+              <span>🔍 Buscar Itens (Produtos & Mão de Obra)</span>
+            </div>
+            <div class="autocomplete-wrapper">
+              <input type="text" id="pdvItemSearch" class="form-control" placeholder="Digite o nome, código ou categoria do item..." autocomplete="off" oninput="app.searchItemPDV(this.value)">
+              <div id="pdvItemDropdown" class="autocomplete-list" style="display:none;"></div>
+            </div>
+
+            <!-- Botões de Catálogo Rápido / Categorias -->
+            <div style="margin-top: 1rem; display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.4rem;" id="pdvQuickCategories">
+              <!-- Categorias rápidas -->
+            </div>
+            <div id="pdvCatalogCards" style="margin-top: 0.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; max-height: 240px; overflow-y: auto;">
+              <!-- Cards rápidos -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Coluna do Carrinho e Fechamento -->
+        <div>
+          <div class="cart-box">
+            <div style="padding: 1rem; border-bottom: 1px solid var(--border); font-weight: 700; display:flex; justify-content:space-between; align-items:center;">
+              <span>🛒 Carrinho</span>
+              <button class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="app.clearCart()">Limpar</button>
+            </div>
+            
+            <div class="cart-items" id="cartItemsList">
+              <div style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Carrinho vazio</div>
+            </div>
+
+            <div class="cart-summary">
+              <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;">
+                <span style="color:var(--text-muted);">Subtotal:</span>
+                <strong id="cartSubtotal">R$ 0,00</strong>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+                <span style="color:var(--text-muted);">Desconto (R$):</span>
+                <input type="number" id="cartDiscount" class="form-control" style="width: 100px; padding: 0.25rem 0.5rem; text-align:right;" value="0" min="0" step="0.5" onchange="app.renderCart()">
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size: 1.3rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px solid var(--border);">
+                <span>Total:</span>
+                <span id="cartTotal" style="color: var(--primary); font-weight: 800;">R$ 0,00</span>
+              </div>
+
+              <!-- Formas de Pagamento e Fechamento -->
+              <div style="margin-top: 1rem;">
+                <label class="form-label">Forma de Pagamento:</label>
+                <select id="cartPaymentMethod" class="form-control" style="margin-bottom: 0.75rem;">
+                  <option value="Dinheiro">💵 Dinheiro</option>
+                  <option value="PIX">⚡ PIX</option>
+                  <option value="Cartão Débito">💳 Cartão Débito</option>
+                  <option value="Cartão Crédito">💳 Cartão Crédito</option>
+                </select>
+
+                <label class="form-label">Tipo de Liquidação:</label>
+                <select id="cartPaymentStatus" class="form-control" onchange="app.togglePartialPayInput()" style="margin-bottom: 0.75rem;">
+                  <option value="integral">✅ Pago Integralmente</option>
+                  <option value="parcial">⏳ Pagamento Parcial / Fiado</option>
+                </select>
+
+                <div id="cartPartialFields" style="display:none; background: var(--warning-light); padding: 0.75rem; border-radius: 6px; margin-bottom: 0.75rem; border: 1px solid #fde68a;">
+                  <label class="form-label" style="font-size:0.8rem; color:#92400e;">Valor Pago Imediato (R$):</label>
+                  <input type="number" id="cartPaidNow" class="form-control" value="0" min="0" step="0.5" oninput="app.calcRemainingDebt()">
+                  <div style="font-size:0.85rem; color:#b45309; margin-top: 0.35rem;">
+                    Saldo Devedor / Fiado: <strong id="cartRemainingDebt">R$ 0,00</strong>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary btn-block" style="height: 50px; font-size: 1.1rem;" onclick="app.checkout()">
+                  🏁 Finalizar Venda [F4]
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ESTOQUE & CATÁLOGO -->
+    <section id="estoque" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>📦 Controle de Estoque & Catálogo de Serviços</span>
+          <div style="display:flex; gap:0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-outline btn-sm" onclick="app.openImportModal()">📥 Importar em Lote (CSV/Colar)</button>
+            <button class="btn btn-primary btn-sm" onclick="app.openItemModal()">+ Novo Item</button>
+          </div>
+        </div>
+
+        <!-- Filtros e Busca -->
+        <div class="form-row" style="margin-bottom: 1rem;">
+          <div>
+            <input type="text" id="inventorySearch" class="form-control" placeholder="Buscar por código, nome..." oninput="app.renderInventory()">
+          </div>
+          <div>
+            <select id="inventoryCategoryFilter" class="form-control" onchange="app.renderInventory()">
+              <option value="">Todas as Categorias</option>
+            </select>
+          </div>
+          <div>
+            <select id="inventoryTypeFilter" class="form-control" onchange="app.renderInventory()">
+              <option value="">Todos os Tipos</option>
+              <option value="produto">Apenas Produtos Físicos</option>
+              <option value="servico">Apenas Mão de Obra / Serviços</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Código/SKU</th>
+                <th>Nome / Descrição</th>
+                <th>Tipo</th>
+                <th>Categoria</th>
+                <th>Custo</th>
+                <th>Venda</th>
+                <th>Margem</th>
+                <th>Estoque</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLIENTES -->
+    <section id="clientes" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>👥 Cadastro de Clientes</span>
+          <button class="btn btn-primary btn-sm" onclick="app.openCustomerModal()">+ Novo Cliente</button>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <input type="text" id="customerSearch" class="form-control" placeholder="Buscar por nome, telefone ou observação..." oninput="app.renderCustomers()">
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome Completo</th>
+                <th>WhatsApp / Telefone</th>
+                <th>E-mail</th>
+                <th id="thCustomerObsLabel">Observações / Veículo</th>
+                <th>Saldo Devedor</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="customersTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTÓRICO DE VENDAS -->
+    <section id="vendas" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>📜 Histórico de Transações e Vendas</span>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Data/Hora</th>
+                <th>Cliente</th>
+                <th>Itens</th>
+                <th>Total</th>
+                <th>Pagamento</th>
+                <th>Situação</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="salesTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONFIGURAÇÕES & BACKUP -->
+    <section id="config" class="tab-content">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+        
+        <!-- Identidade Visual e Customização White-label -->
+        <div class="card">
+          <div class="card-title">
+            <span>🎨 Identidade Visual & Customização</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nome Fantasia da Loja:</label>
+            <input type="text" id="cfgStoreName" class="form-control" value="Oficina & Loja Pro">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Subtítulo / Ramo Comercial:</label>
+            <input type="text" id="cfgStoreSegment" class="form-control" value="Oficina de Bicicletas & Acessórios">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Rótulo da Observação do Cliente (White-Label):</label>
+            <input type="text" id="cfgObsLabel" class="form-control" placeholder="Ex: Modelo da Bicicleta, Placa, Aparelho...">
+            <small style="color:var(--text-muted); font-size: 0.75rem;">Muda o nome do campo nos cadastros para se adaptar a oficinas, assistência técnica, etc.</small>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Texto de Exemplo no Campo de Observação:</label>
+            <input type="text" id="cfgObsPlaceholder" class="form-control" placeholder="Ex: Caloi Elite 29, Preto fosco...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cor Principal do Sistema:</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <input type="color" id="cfgPrimaryColor" value="#2563eb" style="width: 44px; height: 38px; border:none; cursor:pointer; border-radius:6px;">
+              <input type="text" id="cfgPrimaryColorHex" class="form-control" value="#2563eb" style="width: 120px;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Logo da Loja (Imagem Base64):</label>
+            <input type="file" id="cfgLogoFile" class="form-control" accept="image/*" onchange="app.handleLogoUpload(this)">
+            <div id="cfgLogoPreviewContainer" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.75rem;">
+              <img id="cfgLogoPreview" style="max-height: 40px; border-radius: 6px; display:none;" alt="Preview Logo">
+              <button class="btn btn-outline btn-sm" id="cfgBtnRemoveLogo" style="display:none;" onclick="app.removeLogo()">Remover Logo</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="app.saveVisualSettings()">Salvar Alterações Visuais</button>
+        </div>
+
+        <!-- Segurança de Dados & Backup -->
+        <div class="card">
+          <div class="card-title">
+            <span>💾 Segurança de Dados & Backup</span>
+          </div>
+          <p style="color:var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.4;">
+            Todos os dados deste sistema são armazenados de forma segura e offline no navegador deste dispositivo. Faça backups periódicos para proteger seus dados ou transferir para outro computador/celular.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <button class="btn btn-outline" style="border-color: var(--primary); color: var(--primary);" onclick="app.exportBackup()">
+              📤 Exportar Backup Completo (.JSON)
+            </button>
+            <div>
+              <label class="form-label">Restaurar Dados de Backup (.JSON):</label>
+              <input type="file" id="importBackupFile" class="form-control" accept=".json" onchange="app.importBackup(this)">
+            </div>
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+              <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5;" onclick="app.resetSystem()">
+                ⚠️ Zerar Base de Dados de Demonstração
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: ITEM (PRODUTO / SERVIÇO) -->
+  <div class="modal-backdrop" id="itemModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="itemModalTitle">Cadastrar Item</span>
+        <button class="modal-close-btn" onclick="app.closeModal('itemModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="itemForm" onsubmit="app.saveItem(event)">
+          <input type="hidden" id="itemId">
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Tipo do Item <span class="required-mark">*</span></label>
+              <select id="itemType" class="form-control" onchange="app.toggleItemTypeFields()" required>
+                <option value="produto">Produto Físico (Baixa Estoque)</option>
+                <option value="servico">Mão de Obra / Serviço (Sem Estoque)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Código / SKU</label>
+              <div style="display:flex; gap:0.4rem;">
+                <input type="text" id="itemCode" class="form-control" placeholder="Automático">
+                <button type="button" class="btn btn-outline btn-sm" title="Gerar Código" onclick="app.generateCode()">🎲</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nome / Descrição do Item <span class="required-mark">*</span></label>
+            <input type="text" id="itemName" class="form-control" placeholder="Ex: Pneu Pirelli 29x2.10, Revisão Geral..." required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <input type="text" id="itemCategory" class="form-control" list="categorySuggestions" placeholder="Ex: Pneus, Freios, Transmissão, Serviços...">
+            <datalist id="categorySuggestions">
+              <option value="Pneus & Câmaras">
+              <option value="Transmissão & Correntes">
+              <option value="Freios & Pastilhas">
+              <option value="Acessórios & Luzes">
+              <option value="Serviços & Oficina">
+            </datalist>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Preço de Custo (R$)</label>
+              <input type="number" id="itemCostPrice" class="form-control" step="0.01" min="0" value="0.00" oninput="app.calcMargin()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Preço de Venda (R$) <span class="required-mark">*</span></label>
+              <input type="number" id="itemSalePrice" class="form-control" step="0.01" min="0.01" value="0.00" required oninput="app.calcMargin()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Margem Calculada</label>
+              <input type="text" id="itemMargin" class="form-control" readonly style="background:#f1f5f9; font-weight:600;" value="0%">
+            </div>
+          </div>
+
+          <div class="form-row" id="stockFieldsRow">
+            <div class="form-group">
+              <label class="form-label">Quantidade em Estoque</label>
+              <input type="number" id="itemQuantity" class="form-control" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Estoque Mínimo (Alerta)</label>
+              <input type="number" id="itemMinQuantity" class="form-control" min="0" value="3">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select id="itemStatus" class="form-control">
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+
+          <button type="submit" id="btnSubmitItem" style="display:none;"></button>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="app.closeModal('itemModal')">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('btnSubmitItem').click()">Salvar Item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CLIENTE -->
+  <div class="modal-backdrop" id="customerModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="customerModalTitle">Cadastrar Cliente</span>
+        <button class="modal-close-btn" onclick="app.closeModal('customerModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="customerForm" onsubmit="app.saveCustomer(event)">
+          <input type="hidden" id="customerId">
+          
+          <div class="form-group">
+            <label class="form-label">Nome Completo <span class="required-mark">*</span></label>
+            <input type="text" id="customerName" class="form-control" placeholder="Nome do cliente" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">WhatsApp / Celular <span class="required-mark">*</span></label>
+              <input type="text" id="customerPhone" class="form-control" placeholder="(00) 00000-0000" maxlength="15" oninput="app.maskPhone(this)" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">E-mail</label>
+              <input type="email" id="customerEmail" class="form-control" placeholder="cliente@email.com">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" id="modalCustomerObsLabel">Observações / Equipamento</label>
+            <textarea id="customerObs" class="form-control" rows="3" placeholder="Ex: Caloi Elite Aro 29, cor preta"></textarea>
+          </div>
+
+          <!-- Histórico de Vendas e Débitos do Cliente (Exibido se edição) -->
+          <div id="customerHistoryContainer" style="display:none; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+            <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;">Histórico & Débitos em Aberto:</div>
+            <div id="customerHistoryContent" style="font-size:0.85rem; max-height: 150px; overflow-y:auto;">
+              <!-- History entries -->
+            </div>
+          </div>
+
+          <button type="submit" id="btnSubmitCustomer" style="display:none;"></button>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="app.closeModal('customerModal')">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('btnSubmitCustomer').click()">Salvar Cliente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CADASTRO RÁPIDO CLIENTE (PDV) -->
+  <div class="modal-backdrop" id="quickClientModal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <span>⚡ Cadastro Rápido de Cliente</span>
+        <button class="modal-close-btn" onclick="app.closeModal('quickClientModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          Cadastre o cliente sem sair do caixa. O registro ficará marcado como <em>"Cadastro Incompleto"</em> para conferência posterior.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Nome Completo <span class="required-mark">*</span></label>
+          <input type="text" id="quickCustomerName" class="form-control" placeholder="Nome do cliente" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp / Telefone <span class="required-mark">*</span></label>
+          <input type="text" id="quickCustomerPhone" class="form-control" placeholder="(00) 00000-0000" maxlength="15" oninput="app.maskPhone(this)" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="app.closeModal('quickClientModal')">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="app.saveQuickCustomer()">Salvar e Vincular</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR ABATIMENTO DE DÍVIDA / PAGAMENTO FIADO -->
+  <div class="modal-backdrop" id="payDebtModal">
+    <div class="modal-box" style="max-width: 420px;">
+      <div class="modal-header">
+        <span>Receber Pagamento de Débito</span>
+        <button class="modal-close-btn" onclick="app.closeModal('payDebtModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="payDebtCustomerId">
+        <div style="margin-bottom: 1rem;">
+          <div>Cliente: <strong id="payDebtCustomerName">---</strong></div>
+          <div>Dívida Atual: <strong id="payDebtCurrentValue" style="color:var(--danger);">R$ 0,00</strong></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor do Pagamento / Abatimento (R$):</label>
+          <input type="number" id="payDebtAmount" class="form-control" step="0.5" min="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Forma de Pagamento:</label>
+          <select id="payDebtMethod" class="form-control">
+            <option value="Dinheiro">💵 Dinheiro</option>
+            <option value="PIX">⚡ PIX</option>
+            <option value="Cartão">💳 Cartão</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="app.closeModal('payDebtModal')">Cancelar</button>
+        <button type="button" class="btn btn-success" onclick="app.confirmPayDebt()">Confirmar Recebimento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: IMPORTAÇÃO INTELIGENTE DE ESTOQUE -->
+  <div class="modal-backdrop" id="importModal">
+    <div class="modal-box" style="max-width: 780px;">
+      <div class="modal-header">
+        <span>📥 Importação Inteligente de Itens</span>
+        <button class="modal-close-btn" onclick="app.closeModal('importModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="importStepInput">
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Cole suas linhas de tabela do Excel/CSV ou carregue um arquivo. Formato recomendado:<br>
+            <code>Código ; Nome ; Categoria ; Preço Custo ; Preço Venda ; Quantidade</code>
+          </p>
+          <div class="form-group">
+            <textarea id="importRawText" class="form-control" rows="6" placeholder="Exemplo:&#10;P01;Câmara de Ar Kenda 29;Pneus;12.00;25.00;15&#10;P02;Pastilha Freio Shimano;Freios;15.00;35.00;8"></textarea>
+          </div>
+          <div style="display:flex; gap:0.5rem; align-items:center;">
+            <input type="file" id="importFile" accept=".csv, .txt" class="form-control" onchange="app.handleImportFile(this)">
+            <button class="btn btn-primary" onclick="app.analyzeImportData()">Analisar & Validar Duplicidades</button>
+          </div>
+        </div>
+
+        <!-- Tela de Revisão com Validação de Duplicidades -->
+        <div id="importStepReview" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
+            <strong>Revisão de Validação de Duplicidade</strong>
+            <button class="btn btn-outline btn-sm" onclick="app.backToImportInput()">⬅ Alterar Dados</button>
+          </div>
+          <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Item Importado</th>
+                  <th>Preço Venda</th>
+                  <th>Qtd</th>
+                  <th>Ação Sugerida</th>
+                </tr>
+              </thead>
+              <tbody id="importReviewTableBody">
+                <!-- Rows analyzed -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" id="importModalFooter">
+        <button type="button" class="btn btn-outline" onclick="app.closeModal('importModal')">Cancelar</button>
+        <button type="button" class="btn btn-success" id="btnConfirmImport" style="display:none;" onclick="app.executeImport()">Concluir Importação</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: COMPROVANTE DE VENDA -->
+  <div class="modal-backdrop" id="receiptModal">
+    <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-header">
+        <span>🧾 Comprovante de Venda</span>
+        <button class="modal-close-btn" onclick="app.closeModal('receiptModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="printReceipt"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="app.copyReceiptWhatsApp()">📲 Copiar p/ WhatsApp</button>
+        <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC (MODULAR VANILLA JS) -->
+  <script>
+    /**
+     * Sistema de Gestão Comercial e PDV Modular
+     * Desenvolvido em Vanilla JS puro com armazenamento em LocalStorage / IndexedDB
+     */
+    class StoreApp {
+      constructor() {
+        this.storageKey = 'PDV_STORE_DATA_V1';
+        this.data = {
+          config: {
+            storeName: 'Oficina & Loja Pro',
+            storeSegment: 'Oficina de Bicicletas & Acessórios',
+            obsLabel: 'Modelo da Bicicleta',
+            obsPlaceholder: 'Ex: Caloi Elite Aro 29, Preta',
+            primaryColor: '#2563eb',
+            logoBase64: ''
+          },
+          items: [],
+          customers: [],
+          sales: [],
+          reminders: []
+        };
+        this.cart = [];
+        this.selectedCustomer = null;
+        this.stagingImportItems = [];
+      }
+
+      init() {
+        this.loadData();
+        this.applyVisualSettings();
+        this.bindShortcuts();
+        this.renderAll();
+      }
+
+      // --- PERSISTÊNCIA DE DADOS ---
+      loadData() {
+        try {
+          const raw = localStorage.getItem(this.storageKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            this.data = { ...this.data, ...parsed };
+          } else {
+            this.loadSeedData();
+          }
+        } catch (e) {
+          console.error("Erro ao carregar banco de dados local:", e);
+          this.loadSeedData();
+        }
+      }
+
+      saveData() {
+        try {
+          localStorage.setItem(this.storageKey, JSON.stringify(this.data));
+        } catch (e) {
+          alert("Aviso: Limite de armazenamento local atingido ou modo privado bloqueado.");
+        }
+      }
+
+      // Dados de demonstração focados em oficina de bicicleta
+      loadSeedData() {
+        this.data.items = [
+          { id: '1', code: 'P001', name: 'Pneu Aro 29x2.10 Pirelli Scorpion', type: 'produto', category: 'Pneus', costPrice: 65.0, salePrice: 120.0, quantity: 8, minQuantity: 4, status: 'ativo' },
+          { id: '2', code: 'P002', name: 'Câmara de Ar Kenda 29 Válvula Fina', type: 'produto', category: 'Pneus', costPrice: 14.0, salePrice: 30.0, quantity: 2, minQuantity: 5, status: 'ativo' },
+          { id: '3', code: 'P003', name: 'Pastilha Freio a Disco Shimano B01S', type: 'produto', category: 'Freios', costPrice: 20.0, salePrice: 45.0, quantity: 1, minQuantity: 3, status: 'ativo' },
+          { id: '4', code: 'P004', name: 'Corrente Shimano Deore 10V', type: 'produto', category: 'Transmissão', costPrice: 85.0, salePrice: 160.0, quantity: 6, minQuantity: 2, status: 'ativo' },
+          { id: '5', code: 'S001', name: 'Revisão Geral Completa (Desmontagem)', type: 'servico', category: 'Serviços', costPrice: 0, salePrice: 150.0, quantity: 0, minQuantity: 0, status: 'ativo' },
+          { id: '6', code: 'S002', name: 'Regulagem de Câmbios e Freios', type: 'servico', category: 'Serviços', costPrice: 0, salePrice: 45.0, quantity: 0, minQuantity: 0, status: 'ativo' },
+          { id: '7', code: 'S003', name: 'Sangria de Freio Hidráulico (Par)', type: 'servico', category: 'Serviços', costPrice: 15.0, salePrice: 80.0, quantity: 0, minQuantity: 0, status: 'ativo' }
+        ];
+
+        this.data.customers = [
+          { id: 'c1', name: 'Carlos Eduardo Silva', phone: '(11) 98765-4321', email: 'carlos@email.com', obs: 'Oggi Big Wheel 7.3 Azul', debt: 80.0, isIncomplete: false },
+          { id: 'c2', name: 'Mariana Fontes', phone: '(11) 99123-8877', email: 'mariana@email.com', obs: 'Specialized Rockhopper Vermelha', debt: 0.0, isIncomplete: false },
+          { id: 'c3', name: 'Pedro Henrique (Cliente Balcão)', phone: '(11) 97766-5544', email: '', obs: 'Caloi Vulcan', debt: 45.0, isIncomplete: true }
+        ];
+
+        this.data.reminders = [
+          { id: 'r1', text: 'Entregar bike Scott do cliente Carlos até às 17h', done: false },
+          { id: 'r2', text: 'Pedir lote de câmaras de ar aro 29 com o distribuidor', done: false }
+        ];
+
+        this.saveData();
+      }
+
+      // --- NAVEGAÇÃO & ATALHOS ---
+      showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        
+        const target = document.getElementById(tabId);
+        if (target) target.classList.add('active');
+
+        const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes(tabId));
+        if (activeBtn) activeBtn.classList.add('active');
+
+        if (tabId === 'pdv') {
+          setTimeout(() => document.getElementById('pdvItemSearch').focus(), 100);
+        }
+        this.renderAll();
+      }
+
+      bindShortcuts() {
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'F2') {
+            e.preventDefault();
+            this.showTab('pdv');
+          } else if (e.key === 'F4') {
+            const pdvTab = document.getElementById('pdv');
+            if (pdvTab && pdvTab.classList.contains('active')) {
+              e.preventDefault();
+              this.checkout();
+            }
+          } else if (e.key === 'Escape') {
+            this.closeAllModals();
+          }
+        });
+      }
+
+      // --- CONFIGURAÇÃO VISUAL & WHITE-LABEL ---
+      applyVisualSettings() {
+        const { storeName, storeSegment, obsLabel, obsPlaceholder, primaryColor, logoBase64 } = this.data.config;
+        
+        document.getElementById('appStoreName').innerText = storeName || 'Oficina & Loja Pro';
+        document.getElementById('appStoreSegment').innerText = storeSegment || 'Sistema de Gestão & PDV';
+        document.title = `${storeName} - Gestão & PDV`;
+
+        // Cores CSS
+        if (primaryColor) {
+          document.documentElement.style.setProperty('--primary', primaryColor);
+          document.documentElement.style.setProperty('--primary-hover', primaryColor);
+        }
+
+        // Logo
+        const logoContainer = document.getElementById('brandLogoContainer');
+        if (logoBase64) {
+          logoContainer.innerHTML = `<img src="${logoBase64}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`;
+        } else {
+          logoContainer.innerHTML = '🚲';
+        }
+
+        // Rótulos Dinâmicos de Cliente
+        const label = obsLabel || 'Modelo da Bicicleta';
+        const placeholder = obsPlaceholder || 'Ex: Caloi Elite Aro 29...';
+        
+        const thObs = document.getElementById('thCustomerObsLabel');
+        if (thObs) thObs.innerText = label;
+
+        const modalObsLabel = document.getElementById('modalCustomerObsLabel');
+        if (modalObsLabel) modalObsLabel.innerText = label;
+
+        const custObs = document.getElementById('customerObs');
+        if (custObs) custObs.placeholder = placeholder;
+
+        // Preenche campos da aba de config
+        document.getElementById('cfgStoreName').value = storeName;
+        document.getElementById('cfgStoreSegment').value = storeSegment;
+        document.getElementById('cfgObsLabel').value = obsLabel;
+        document.getElementById('cfgObsPlaceholder').value = obsPlaceholder;
+        document.getElementById('cfgPrimaryColor').value = primaryColor || '#2563eb';
+        document.getElementById('cfgPrimaryColorHex').value = primaryColor || '#2563eb';
+
+        if (logoBase64) {
+          const preview = document.getElementById('cfgLogoPreview');
+          preview.src = logoBase64;
+          preview.style.display = 'block';
+          document.getElementById('cfgBtnRemoveLogo').style.display = 'inline-block';
+        }
+      }
+
+      saveVisualSettings() {
+        this.data.config.storeName = document.getElementById('cfgStoreName').value.trim() || 'Oficina & Loja Pro';
+        this.data.config.storeSegment = document.getElementById('cfgStoreSegment').value.trim() || 'Sistema de Gestão & PDV';
+        this.data.config.obsLabel = document.getElementById('cfgObsLabel').value.trim() || 'Modelo da Bicicleta';
+        this.data.config.obsPlaceholder = document.getElementById('cfgObsPlaceholder').value.trim() || 'Ex: Caloi Elite Aro 29';
+        this.data.config.primaryColor = document.getElementById('cfgPrimaryColor').value;
+        
+        this.saveData();
+        this.applyVisualSettings();
+        alert('Configurações salvas com sucesso!');
+      }
+
+      handleLogoUpload(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.data.config.logoBase64 = e.target.result;
+          this.saveData();
+          this.applyVisualSettings();
+        };
+        reader.readAsDataURL(file);
+      }
+
+      removeLogo() {
+        this.data.config.logoBase64 = '';
+        document.getElementById('cfgLogoPreview').style.display = 'none';
+        document.getElementById('cfgBtnRemoveLogo').style.display = 'none';
+        document.getElementById('cfgLogoFile').value = '';
+        this.saveData();
+        this.applyVisualSettings();
+      }
+
+      // --- DASHBOARD RENDERING ---
+      renderDashboard() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const currentMonthStr = todayStr.substring(0, 7);
+
+        // Vendas hoje & mês
+        let salesToday = 0;
+        let countToday = 0;
+        let salesMonth = 0;
+        let countMonth = 0;
+
+        (this.data.sales || []).forEach(sale => {
+          if (sale.date.startsWith(todayStr)) {
+            salesToday += sale.total;
+            countToday++;
+          }
+          if (sale.date.startsWith(currentMonthStr)) {
+            salesMonth += sale.total;
+            countMonth++;
+          }
+        });
+
+        document.getElementById('dashSalesToday').innerText = this.formatCurrency(salesToday);
+        document.getElementById('dashSalesTodayCount').innerText = `${countToday} venda(s)`;
+        document.getElementById('dashSalesMonth').innerText = this.formatCurrency(salesMonth);
+        document.getElementById('dashSalesMonthCount').innerText = `${countMonth} venda(s)`;
+
+        // Total a receber (devedores)
+        let totalReceivable = 0;
+        let debtorsCount = 0;
+        const debtors = [];
+
+        (this.data.customers || []).forEach(c => {
+          if (c.debt && c.debt > 0) {
+            totalReceivable += c.debt;
+            debtorsCount++;
+            debtors.push(c);
+          }
+        });
+
+        document.getElementById('dashTotalReceivable').innerText = this.formatCurrency(totalReceivable);
+        document.getElementById('dashDebtorsCount').innerText = `${debtorsCount} pendente(s)`;
+        document.getElementById('debtorsBadge').innerText = `${debtorsCount} devedor(es)`;
+
+        // Tabela Devedores
+        const debtorsTbody = document.getElementById('debtorsTableBody');
+        if (debtors.length === 0) {
+          debtorsTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding:1rem;">Nenhum cliente com débito pendente. Parabéns! 🎉</td></tr>`;
+        } else {
+          debtorsTbody.innerHTML = debtors.map(c => `
+            <tr>
+              <td><strong>${this.escapeHtml(c.name)}</strong></td>
+              <td>${this.escapeHtml(c.phone)}</td>
+              <td><span style="color:var(--danger); font-weight:700;">${this.formatCurrency(c.debt)}</span></td>
+              <td>
+                <button class="btn btn-outline btn-sm" style="color:var(--success); border-color:var(--success);" onclick="app.openPayDebtModal('${c.id}')">💵 Abater / Quitar</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        // Valor do Estoque e Alertas de Estoque Baixo
+        let totalStockValue = 0;
+        let physicalCount = 0;
+        const lowStockItems = [];
+
+        (this.data.items || []).forEach(item => {
+          if (item.type === 'produto' && item.status === 'ativo') {
+            totalStockValue += (item.salePrice * item.quantity);
+            physicalCount += item.quantity;
+            if (item.quantity <= item.minQuantity) {
+              lowStockItems.push(item);
+            }
+          }
+        });
+
+        document.getElementById('dashInventoryValue').innerText = this.formatCurrency(totalStockValue);
+        document.getElementById('dashInventoryItems').innerText = `${physicalCount} un. em estoque`;
+        document.getElementById('lowStockBadge').innerText = `${lowStockItems.length} crítico(s)`;
+
+        const lowStockTbody = document.getElementById('lowStockTableBody');
+        if (lowStockItems.length === 0) {
+          lowStockTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted); padding:1rem;">Todos os produtos com estoque saudável! ✅</td></tr>`;
+        } else {
+          lowStockTbody.innerHTML = lowStockItems.map(item => `
+            <tr>
+              <td><code>${item.code || '-'}</code></td>
+              <td><strong>${this.escapeHtml(item.name)}</strong></td>
+              <td><span class="badge badge-danger">${item.quantity}</span></td>
+              <td>${item.minQuantity}</td>
+              <td>
+                <button class="btn btn-outline btn-sm" onclick="app.editItem('${item.id}')">✏️ Ajustar</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        // Lembretes
+        this.renderReminders();
+      }
+
+      // --- MURAL DE LEMBRETES ---
+      renderReminders() {
+        const list = document.getElementById('remindersList');
+        const items = this.data.reminders || [];
+        if (items.length === 0) {
+          list.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:1rem; font-size:0.9rem;">Nenhum lembrete no mural.</div>`;
+          return;
+        }
+
+        list.innerHTML = items.map(r => `
+          <div style="display:flex; justify-content:space-between; align-items:center; background: ${r.done ? '#f1f5f9' : 'var(--surface)'}; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 6px;">
+            <div style="display:flex; align-items:center; gap:0.6rem; text-decoration: ${r.done ? 'line-through' : 'none'}; color: ${r.done ? 'var(--text-muted)' : 'inherit'};">
+              <input type="checkbox" ${r.done ? 'checked' : ''} onchange="app.toggleReminder('${r.id}')" style="width:16px; height:16px; cursor:pointer;">
+              <span>${this.escapeHtml(r.text)}</span>
+            </div>
+            <button class="btn btn-outline btn-sm" style="color:var(--danger); padding:0.2rem 0.5rem;" onclick="app.deleteReminder('${r.id}')">✖</button>
+          </div>
+        `).join('');
+      }
+
+      addReminder() {
+        const input = document.getElementById('newReminderInput');
+        const text = input.value.trim();
+        if (!text) return;
+        this.data.reminders.unshift({
+          id: 'rem_' + Date.now(),
+          text: text,
+          done: false
+        });
+        input.value = '';
+        this.saveData();
+        this.renderReminders();
+      }
+
+      toggleReminder(id) {
+        const r = this.data.reminders.find(x => x.id === id);
+        if (r) {
+          r.done = !r.done;
+          this.saveData();
+          this.renderReminders();
+        }
+      }
+
+      deleteReminder(id) {
+        this.data.reminders = this.data.reminders.filter(x => x.id !== id);
+        this.saveData();
+        this.renderReminders();
+      }
+
+      // --- ESTOQUE & CATÁLOGO ---
+      renderInventory() {
+        const search = (document.getElementById('inventorySearch')?.value || '').toLowerCase();
+        const categoryFilter = document.getElementById('inventoryCategoryFilter')?.value || '';
+        const typeFilter = document.getElementById('inventoryTypeFilter')?.value || '';
+
+        // Preenche dropdown de categorias dinâmicas
+        const categories = [...new Set(this.data.items.map(i => i.category).filter(Boolean))];
+        const catSelect = document.getElementById('inventoryCategoryFilter');
+        if (catSelect && catSelect.children.length <= 1) {
+          categories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.innerText = cat;
+            catSelect.appendChild(opt);
+          });
+        }
+
+        const filtered = (this.data.items || []).filter(item => {
+          const matchSearch = item.name.toLowerCase().includes(search) || (item.code && item.code.toLowerCase().includes(search));
+          const matchCat = !categoryFilter || item.category === categoryFilter;
+          const matchType = !typeFilter || item.type === typeFilter;
+          return matchSearch && matchCat && matchType;
+        });
+
+        const tbody = document.getElementById('inventoryTableBody');
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Nenhum item encontrado no catálogo.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(item => {
+          const margin = item.costPrice > 0 ? (((item.salePrice - item.costPrice) / item.costPrice) * 100).toFixed(0) : '100';
+          const isLow = item.type === 'produto' && item.quantity <= item.minQuantity;
+          const isService = item.type === 'servico';
+
+          return `
+            <tr style="${item.status === 'inativo' ? 'opacity: 0.6;' : ''}">
+              <td><code>${item.code || '-'}</code></td>
+              <td><strong>${this.escapeHtml(item.name)}</strong></td>
+              <td><span class="badge ${isService ? 'badge-primary' : 'badge-outline'}" style="background:#f1f5f9;">${isService ? '🛠️ Serviço' : '📦 Produto'}</span></td>
+              <td>${item.category || '-'}</td>
+              <td>${this.formatCurrency(item.costPrice)}</td>
+              <td><strong>${this.formatCurrency(item.salePrice)}</strong></td>
+              <td><span style="color:var(--success); font-weight:700;">+${margin}%</span></td>
+              <td>
+                ${isService ? '<span style="color:var(--text-muted);">N/A (Mão de Obra)</span>' : `
+                  <strong style="color: ${isLow ? 'var(--danger)' : 'inherit'}; font-size:1rem;">${item.quantity}</strong>
+                  ${isLow ? '<span class="badge badge-danger" style="margin-left:4px;">Baixo</span>' : ''}
+                `}
+              </td>
+              <td>
+                <span class="badge ${item.status === 'ativo' ? 'badge-success' : 'badge-warning'}">${item.status}</span>
+              </td>
+              <td>
+                <div style="display:flex; gap:0.25rem;">
+                  <button class="btn btn-outline btn-sm" onclick="app.editItem('${item.id}')" title="Editar">✏️</button>
+                  <button class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="app.deleteItem('${item.id}')" title="Excluir">🗑️</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      openItemModal(itemId = null) {
+        document.getElementById('itemForm').reset();
+        document.getElementById('itemId').value = '';
+        document.getElementById('itemStatus').value = 'ativo';
+        document.getElementById('itemType').value = 'produto';
+        this.toggleItemTypeFields();
+
+        if (itemId) {
+          const item = this.data.items.find(x => x.id === itemId);
+          if (item) {
+            document.getElementById('itemModalTitle').innerText = 'Editar Item';
+            document.getElementById('itemId').value = item.id;
+            document.getElementById('itemType').value = item.type;
+            document.getElementById('itemCode').value = item.code || '';
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemCategory').value = item.category || '';
+            document.getElementById('itemCostPrice').value = item.costPrice;
+            document.getElementById('itemSalePrice').value = item.salePrice;
+            document.getElementById('itemQuantity').value = item.quantity;
+            document.getElementById('itemMinQuantity').value = item.minQuantity;
+            document.getElementById('itemStatus').value = item.status;
+            this.calcMargin();
+            this.toggleItemTypeFields();
+          }
+        } else {
+          document.getElementById('itemModalTitle').innerText = 'Cadastrar Item';
+          this.generateCode();
+          this.calcMargin();
+        }
+
+        this.openModal('itemModal');
+      }
+
+      toggleItemTypeFields() {
+        const type = document.getElementById('itemType').value;
+        const stockRow = document.getElementById('stockFieldsRow');
+        if (type === 'servico') {
+          stockRow.style.display = 'none';
+        } else {
+          stockRow.style.display = 'grid';
+        }
+      }
+
+      generateCode() {
+        const type = document.getElementById('itemType').value;
+        const prefix = type === 'servico' ? 'SRV' : 'PRD';
+        const random = Math.floor(1000 + Math.random() * 9000);
+        document.getElementById('itemCode').value = `${prefix}-${random}`;
+      }
+
+      calcMargin() {
+        const cost = parseFloat(document.getElementById('itemCostPrice').value) || 0;
+        const sale = parseFloat(document.getElementById('itemSalePrice').value) || 0;
+        const marginEl = document.getElementById('itemMargin');
+        if (cost > 0 && sale >= cost) {
+          const margin = (((sale - cost) / cost) * 100).toFixed(1);
+          marginEl.value = `${margin}%`;
+        } else if (cost === 0 && sale > 0) {
+          marginEl.value = '100% (Sem Custo)';
+        } else {
+          marginEl.value = '0%';
+        }
+      }
+
+      saveItem(e) {
+        e.preventDefault();
+        const id = document.getElementById('itemId').value;
+        const type = document.getElementById('itemType').value;
+        const code = document.getElementById('itemCode').value.trim();
+        const name = document.getElementById('itemName').value.trim();
+        const category = document.getElementById('itemCategory').value.trim() || 'Geral';
+        const costPrice = parseFloat(document.getElementById('itemCostPrice').value) || 0;
+        const salePrice = parseFloat(document.getElementById('itemSalePrice').value) || 0;
+        const quantity = type === 'servico' ? 0 : (parseInt(document.getElementById('itemQuantity').value) || 0);
+        const minQuantity = type === 'servico' ? 0 : (parseInt(document.getElementById('itemMinQuantity').value) || 0);
+        const status = document.getElementById('itemStatus').value;
+
+        if (id) {
+          const item = this.data.items.find(x => x.id === id);
+          if (item) {
+            Object.assign(item, { type, code, name, category, costPrice, salePrice, quantity, minQuantity, status });
+          }
+        } else {
+          this.data.items.push({
+            id: 'item_' + Date.now(),
+            type, code, name, category, costPrice, salePrice, quantity, minQuantity, status
+          });
+        }
+
+        this.saveData();
+        this.closeModal('itemModal');
+        this.renderAll();
+      }
+
+      editItem(id) {
+        this.openItemModal(id);
+      }
+
+      deleteItem(id) {
+        if (confirm('Tem certeza que deseja excluir este item do catálogo?')) {
+          this.data.items = this.data.items.filter(x => x.id !== id);
+          this.saveData();
+          this.renderAll();
+        }
+      }
+
+      // --- IMPORTAÇÃO INTELIGENTE DE ESTOQUE COM VALIDAÇÃO DE DUPLICIDADE ---
+      openImportModal() {
+        document.getElementById('importRawText').value = '';
+        document.getElementById('importFile').value = '';
+        this.backToImportInput();
+        this.openModal('importModal');
+      }
+
+      handleImportFile(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById('importRawText').value = e.target.result;
+        };
+        reader.readAsText(file);
+      }
+
+      backToImportInput() {
+        document.getElementById('importStepInput').style.display = 'block';
+        document.getElementById('importStepReview').style.display = 'none';
+        document.getElementById('btnConfirmImport').style.display = 'none';
+      }
+
+      analyzeImportData() {
+        const raw = document.getElementById('importRawText').value.trim();
+        if (!raw) {
+          alert('Por favor, cole os dados ou carregue um arquivo CSV/TXT.');
+          return;
+        }
+
+        const lines = raw.split('\n');
+        this.stagingImportItems = [];
+
+        lines.forEach(line => {
+          const cleanLine = line.trim();
+          if (!cleanLine || cleanLine.startsWith('#')) return;
+
+          // Aceita separadores: ponto e vírgula (;), vírgula (,) ou tabulação (\t)
+          let parts = cleanLine.split(';');
+          if (parts.length === 1) parts = cleanLine.split('\t');
+          if (parts.length === 1) parts = cleanLine.split(',');
+
+          if (parts.length >= 2) {
+            const code = parts[0]?.trim() || '';
+            const name = parts[1]?.trim() || '';
+            const category = parts[2]?.trim() || 'Geral';
+            const costPrice = parseFloat((parts[3] || '0').replace('R$', '').replace(',', '.')) || 0;
+            const salePrice = parseFloat((parts[4] || '0').replace('R$', '').replace(',', '.')) || 0;
+            const quantity = parseInt(parts[5] || '1') || 1;
+
+            if (name) {
+              // Verificação Inteligente de Duplicidade
+              const existingExactCode = this.data.items.find(i => i.code && i.code.toLowerCase() === code.toLowerCase());
+              const existingExactName = this.data.items.find(i => i.name.toLowerCase() === name.toLowerCase());
+              
+              // Similaridade fonética / parcial por nome
+              const similarNameItem = this.data.items.find(i => {
+                const s1 = i.name.toLowerCase();
+                const s2 = name.toLowerCase();
+                return (s1.includes(s2) || s2.includes(s1)) && Math.abs(s1.length - s2.length) < 5;
+              });
+
+              let duplicateStatus = 'NOVO';
+              let suggestedAction = 'Cadastrar Novo Item';
+              let matchItem = null;
+
+              if (existingExactCode) {
+                duplicateStatus = 'EXISTE_CODIGO';
+                suggestedAction = 'Item com mesmo código. Atualizar estoque (+qtd) e preço.';
+                matchItem = existingExactCode;
+              } else if (existingExactName) {
+                duplicateStatus = 'EXISTE_NOME';
+                suggestedAction = 'Item com mesmo nome. Somar quantidade e atualizar preço.';
+                matchItem = existingExactName;
+              } else if (similarNameItem) {
+                duplicateStatus = 'POSSIVEL_DUPLICADO';
+                suggestedAction = `Possível duplicidade com "${similarNameItem.name}". Conferir.`;
+                matchItem = similarNameItem;
+              }
+
+              this.stagingImportItems.push({
+                code: code || ('IMP-' + Math.floor(Math.random() * 8999 + 1000)),
+                name,
+                category,
+                costPrice,
+                salePrice: salePrice || (costPrice * 1.6),
+                quantity,
+                duplicateStatus,
+                suggestedAction,
+                matchItem
+              });
+            }
+          }
+        });
+
+        if (this.stagingImportItems.length === 0) {
+          alert('Não foi possível identificar itens válidos no texto colado. Verifique o padrão.');
+          return;
+        }
+
+        // Renderiza tela de revisão
+        const tbody = document.getElementById('importReviewTableBody');
+        tbody.innerHTML = this.stagingImportItems.map((item, idx) => {
+          let badgeClass = 'badge-success';
+          let statusText = 'Item Novo';
+
+          if (item.duplicateStatus === 'EXISTE_CODIGO' || item.duplicateStatus === 'EXISTE_NOME') {
+            badgeClass = 'badge-warning';
+            statusText = 'Já Existe no Estoque';
+          } else if (item.duplicateStatus === 'POSSIVEL_DUPLICADO') {
+            badgeClass = 'badge-danger';
+            statusText = 'Possível Duplicidade';
+          }
+
+          return `
+            <tr>
+              <td><span class="badge ${badgeClass}">${statusText}</span></td>
+              <td>
+                <strong>${this.escapeHtml(item.name)}</strong><br>
+                <small style="color:var(--text-muted);">Cód: ${item.code} | Cat: ${item.category}</small>
+              </td>
+              <td>${this.formatCurrency(item.salePrice)}</td>
+              <td><strong>+${item.quantity}</strong></td>
+              <td>
+                <select class="form-control" style="font-size:0.8rem; padding:0.25rem 0.5rem;" id="importAction_${idx}">
+                  ${item.duplicateStatus === 'NOVO' ? `
+                    <option value="create_new">Criar como Novo</option>
+                  ` : `
+                    <option value="update_existing">Somar Quantidade ao Existente & Atualizar Preço</option>
+                    <option value="create_new">Criar como Novo Mesmo Assim</option>
+                    <option value="ignore">Ignorar / Não Importar</option>
+                  `}
+                </select>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        document.getElementById('importStepInput').style.display = 'none';
+        document.getElementById('importStepReview').style.display = 'block';
+        document.getElementById('btnConfirmImport').style.display = 'inline-block';
+      }
+
+      executeImport() {
+        let created = 0;
+        let updated = 0;
+
+        this.stagingImportItems.forEach((imp, idx) => {
+          const actionEl = document.getElementById(`importAction_${idx}`);
+          const action = actionEl ? actionEl.value : 'create_new';
+
+          if (action === 'update_existing' && imp.matchItem) {
+            imp.matchItem.quantity += imp.quantity;
+            if (imp.salePrice > 0) imp.matchItem.salePrice = imp.salePrice;
+            if (imp.costPrice > 0) imp.matchItem.costPrice = imp.costPrice;
+            updated++;
+          } else if (action === 'create_new') {
+            this.data.items.push({
+              id: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+              type: 'produto',
+              code: imp.code,
+              name: imp.name,
+              category: imp.category,
+              costPrice: imp.costPrice,
+              salePrice: imp.salePrice,
+              quantity: imp.quantity,
+              minQuantity: 3,
+              status: 'ativo'
+            });
+            created++;
+          }
+        });
+
+        this.saveData();
+        this.closeModal('importModal');
+        this.renderAll();
+        alert(`Importação finalizada com sucesso!\n• Novos itens cadastrados: ${created}\n• Itens atualizados no estoque: ${updated}`);
+      }
+
+      // --- CLIENTES ---
+      renderCustomers() {
+        const search = (document.getElementById('customerSearch')?.value || '').toLowerCase();
+        const filtered = (this.data.customers || []).filter(c => 
+          c.name.toLowerCase().includes(search) || 
+          c.phone.toLowerCase().includes(search) || 
+          (c.obs && c.obs.toLowerCase().includes(search))
+        );
+
+        const tbody = document.getElementById('customersTableBody');
+        if (filtered.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Nenhum cliente encontrado.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = filtered.map(c => `
+          <tr>
+            <td>
+              <strong>${this.escapeHtml(c.name)}</strong>
+              ${c.isIncomplete ? '<span class="badge badge-warning" style="margin-left:5px; font-size:0.65rem;">Cadastro Incompleto</span>' : ''}
+            </td>
+            <td>
+              <a href="https://wa.me/55${c.phone.replace(/\D/g, '')}" target="_blank" style="color:var(--primary); text-decoration:none; font-weight:600;">
+                📱 ${this.escapeHtml(c.phone)}
+              </a>
+            </td>
+            <td>${c.email || '-'}</td>
+            <td>${this.escapeHtml(c.obs || '-')}</td>
+            <td>
+              ${c.debt > 0 ? `<strong style="color:var(--danger);">${this.formatCurrency(c.debt)}</strong>` : '<span style="color:var(--success);">Em dia</span>'}
+            </td>
+            <td>
+              <span class="badge ${c.debt > 0 ? 'badge-danger' : 'badge-success'}">${c.debt > 0 ? 'Devendo' : 'Regular'}</span>
+            </td>
+            <td>
+              <div style="display:flex; gap:0.25rem;">
+                ${c.debt > 0 ? `<button class="btn btn-outline btn-sm" style="color:var(--success);" onclick="app.openPayDebtModal('${c.id}')" title="Receber débito">💵</button>` : ''}
+                <button class="btn btn-outline btn-sm" onclick="app.editCustomer('${c.id}')" title="Editar">✏️</button>
+                <button class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="app.deleteCustomer('${c.id}')" title="Excluir">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      openCustomerModal(customerId = null) {
+        document.getElementById('customerForm').reset();
+        document.getElementById('customerId').value = '';
+        const historyContainer = document.getElementById('customerHistoryContainer');
+        historyContainer.style.display = 'none';
+
+        if (customerId) {
+          const c = this.data.customers.find(x => x.id === customerId);
+          if (c) {
+            document.getElementById('customerModalTitle').innerText = 'Editar Cliente';
+            document.getElementById('customerId').value = c.id;
+            document.getElementById('customerName').value = c.name;
+            document.getElementById('customerPhone').value = c.phone;
+            document.getElementById('customerEmail').value = c.email || '';
+            document.getElementById('customerObs').value = c.obs || '';
+
+            // Renderiza histórico de compras e débitos
+            const history = (this.data.sales || []).filter(s => s.customerId === c.id);
+            const historyContent = document.getElementById('customerHistoryContent');
+            if (history.length > 0) {
+              historyContent.innerHTML = history.map(s => `
+                <div style="padding: 0.35rem 0; border-bottom: 1px dashed var(--border);">
+                  📅 <strong>${new Date(s.date).toLocaleDateString('pt-BR')}</strong> - Total: ${this.formatCurrency(s.total)} 
+                  (${s.paymentStatus === 'integral' ? '<span style="color:var(--success);">Quitado</span>' : `<span style="color:var(--danger);">Fiado/Parcial (Saldo: ${this.formatCurrency(s.remainingDebt)})</span>`})
+                  <div style="font-size:0.75rem; color:var(--text-muted);">${s.items.map(i => i.name).join(', ')}</div>
+                </div>
+              `).join('');
+              historyContainer.style.display = 'block';
+            }
+          }
+        } else {
+          document.getElementById('customerModalTitle').innerText = 'Cadastrar Cliente';
+        }
+
+        this.openModal('customerModal');
+      }
+
+      saveCustomer(e) {
+        e.preventDefault();
+        const id = document.getElementById('customerId').value;
+        const name = document.getElementById('customerName').value.trim();
+        const phone = document.getElementById('customerPhone').value.trim();
+        const email = document.getElementById('customerEmail').value.trim();
+        const obs = document.getElementById('customerObs').value.trim();
+
+        if (phone.replace(/\D/g, '').length < 10) {
+          alert('Por favor, informe um telefone válido com DDD.');
+          return;
+        }
+
+        if (id) {
+          const c = this.data.customers.find(x => x.id === id);
+          if (c) {
+            Object.assign(c, { name, phone, email, obs, isIncomplete: false });
+          }
+        } else {
+          this.data.customers.push({
+            id: 'cust_' + Date.now(),
+            name, phone, email, obs, debt: 0.0, isIncomplete: false
+          });
+        }
+
+        this.saveData();
+        this.closeModal('customerModal');
+        this.renderAll();
+      }
+
+      editCustomer(id) {
+        this.openCustomerModal(id);
+      }
+
+      deleteCustomer(id) {
+        if (confirm('Deseja excluir este cliente?')) {
+          this.data.customers = this.data.customers.filter(x => x.id !== id);
+          this.saveData();
+          this.renderAll();
+        }
+      }
+
+      // Máscara dinâmica de telefone com 10 e 11 dígitos
+      maskPhone(input) {
+        let v = input.value.replace(/\D/g, '');
+        if (v.length > 11) v = v.substring(0, 11);
+        if (v.length > 10) {
+          input.value = `(${v.substring(0,2)}) ${v.substring(2,7)}-${v.substring(7,11)}`;
+        } else if (v.length > 6) {
+          input.value = `(${v.substring(0,2)}) ${v.substring(2,6)}-${v.substring(6,10)}`;
+        } else if (v.length > 2) {
+          input.value = `(${v.substring(0,2)}) ${v.substring(2)}`;
+        } else if (v.length > 0) {
+          input.value = `(${v}`;
+        }
+      }
+
+      // --- CADASTRO RÁPIDO NO PDV ---
+      openQuickClientModal() {
+        document.getElementById('quickCustomerName').value = '';
+        document.getElementById('quickCustomerPhone').value = '';
+        this.openModal('quickClientModal');
+      }
+
+      saveQuickCustomer() {
+        const name = document.getElementById('quickCustomerName').value.trim();
+        const phone = document.getElementById('quickCustomerPhone').value.trim();
+
+        if (!name || phone.replace(/\D/g, '').length < 10) {
+          alert('Preencha Nome e Telefone/WhatsApp válido.');
+          return;
+        }
+
+        const newCust = {
+          id: 'cust_' + Date.now(),
+          name,
+          phone,
+          email: '',
+          obs: '',
+          debt: 0.0,
+          isIncomplete: true // Sinalizador requerido no requisito 2.E
+        };
+
+        this.data.customers.push(newCust);
+        this.saveData();
+        this.selectCustomerPDV(newCust);
+        this.closeModal('quickClientModal');
+        this.renderCustomers();
+      }
+
+      // --- ABATIMENTO DE DÍVIDAS / CONTAS A RECEBER ---
+      openPayDebtModal(customerId) {
+        const c = this.data.customers.find(x => x.id === customerId);
+        if (!c) return;
+
+        document.getElementById('payDebtCustomerId').value = c.id;
+        document.getElementById('payDebtCustomerName').innerText = c.name;
+        document.getElementById('payDebtCurrentValue').innerText = this.formatCurrency(c.debt);
+        document.getElementById('payDebtAmount').value = c.debt;
+        this.openModal('payDebtModal');
+      }
+
+      confirmPayDebt() {
+        const id = document.getElementById('payDebtCustomerId').value;
+        const amount = parseFloat(document.getElementById('payDebtAmount').value) || 0;
+        const method = document.getElementById('payDebtMethod').value;
+        const c = this.data.customers.find(x => x.id === id);
+
+        if (!c || amount <= 0) {
+          alert('Informe um valor válido.');
+          return;
+        }
+
+        const paid = Math.min(amount, c.debt);
+        c.debt -= paid;
+
+        // Registra transação no histórico de vendas como recebimento de débito
+        this.data.sales.push({
+          id: 'REC-' + Date.now().toString().slice(-6),
+          date: new Date().toISOString(),
+          customerId: c.id,
+          customerName: c.name,
+          items: [{ name: `Recebimento Débito / Fiado (${method})`, quantity: 1, price: paid }],
+          total: paid,
+          paymentMethod: method,
+          paymentStatus: 'integral',
+          remainingDebt: 0
+        });
+
+        this.saveData();
+        this.closeModal('payDebtModal');
+        this.renderAll();
+        alert(`Recebimento de ${this.formatCurrency(paid)} registrado com sucesso para ${c.name}!`);
+      }
+
+      // --- FRENTE DE CAIXA (PDV) ---
+      searchCustomerPDV(query) {
+        const dropdown = document.getElementById('pdvCustomerDropdown');
+        if (!query.trim()) {
+          dropdown.style.display = 'none';
+          return;
+        }
+
+        const matches = (this.data.customers || []).filter(c => 
+          c.name.toLowerCase().includes(query.toLowerCase()) || 
+          c.phone.includes(query)
+        );
+
+        if (matches.length === 0) {
+          dropdown.innerHTML = `<div style="padding:0.75rem; color:var(--text-muted); font-size:0.85rem;">Nenhum cliente encontrado. <a href="javascript:app.openQuickClientModal()" style="color:var(--primary); font-weight:700;">+ Cadastrar Rápido</a></div>`;
+          dropdown.style.display = 'block';
+          return;
+        }
+
+        dropdown.innerHTML = matches.map(c => `
+          <div class="autocomplete-item" onclick="app.selectCustomerPDV(${JSON.stringify(c).replace(/"/g, '&quot;')})">
+            <div>
+              <strong>${this.escapeHtml(c.name)}</strong>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${c.phone} ${c.obs ? `• ${c.obs}` : ''}</div>
+            </div>
+            ${c.debt > 0 ? `<span class="badge badge-danger">Deve: ${this.formatCurrency(c.debt)}</span>` : ''}
+          </div>
+        `).join('');
+        dropdown.style.display = 'block';
+      }
+
+      selectCustomerPDV(customer) {
+        this.selectedCustomer = customer;
+        document.getElementById('pdvCustomerDropdown').style.display = 'none';
+        document.getElementById('pdvCustomerSearch').value = '';
+        
+        document.getElementById('pdvCustomerName').innerText = customer.name;
+        const debtSpan = document.getElementById('pdvCustomerDebtSpan');
+        if (customer.debt > 0) {
+          debtSpan.innerText = `(Débito: ${this.formatCurrency(customer.debt)})`;
+        } else {
+          debtSpan.innerText = '';
+        }
+
+        document.getElementById('pdvSelectedCustomerBadge').style.display = 'block';
+      }
+
+      clearPDVCustomer() {
+        this.selectedCustomer = null;
+        document.getElementById('pdvSelectedCustomerBadge').style.display = 'none';
+        document.getElementById('pdvCustomerSearch').value = '';
+      }
+
+      searchItemPDV(query) {
+        const dropdown = document.getElementById('pdvItemDropdown');
+        if (!query.trim()) {
+          dropdown.style.display = 'none';
+          return;
+        }
+
+        const q = query.toLowerCase();
+        const matches = (this.data.items || []).filter(i => 
+          i.status === 'ativo' && (
+            i.name.toLowerCase().includes(q) || 
+            (i.code && i.code.toLowerCase().includes(q)) || 
+            (i.category && i.category.toLowerCase().includes(q))
+          )
+        );
+
+        if (matches.length === 0) {
+          dropdown.innerHTML = `<div style="padding:0.75rem; color:var(--text-muted);">Nenhum item encontrado.</div>`;
+          dropdown.style.display = 'block';
+          return;
+        }
+
+        dropdown.innerHTML = matches.map(item => `
+          <div class="autocomplete-item" onclick="app.addItemToCart('${item.id}')">
+            <div>
+              <strong>${this.escapeHtml(item.name)}</strong>
+              <div style="font-size:0.75rem; color:var(--text-muted);">${item.code || ''} • ${item.category || ''}</div>
+            </div>
+            <div style="text-align:right;">
+              <strong style="color:var(--primary);">${this.formatCurrency(item.salePrice)}</strong>
+              <div style="font-size:0.75rem; color: ${item.type === 'produto' && item.quantity <= item.minQuantity ? 'var(--danger)' : 'var(--text-muted)'};">
+                ${item.type === 'servico' ? '🛠️ Mão de obra' : `Estoque: ${item.quantity}`}
+              </div>
+            </div>
+          </div>
+        `).join('');
+        dropdown.style.display = 'block';
+      }
+
+      addItemToCart(itemId) {
+        const item = this.data.items.find(x => x.id === itemId);
+        if (!item) return;
+
+        // Validação de estoque físico
+        const existingCartItem = this.cart.find(c => c.id === item.id);
+        const currentQtyInCart = existingCartItem ? existingCartItem.quantity : 0;
+
+        if (item.type === 'produto' && currentQtyInCart + 1 > item.quantity) {
+          if (!confirm(`Atenção: Quantidade em estoque (${item.quantity}) excedida para "${item.name}". Deseja adicionar mesmo assim?`)) {
+            return;
+          }
+        }
+
+        if (existingCartItem) {
+          existingCartItem.quantity += 1;
+        } else {
+          this.cart.push({
+            id: item.id,
+            name: item.name,
+            code: item.code,
+            type: item.type,
+            price: item.salePrice,
+            quantity: 1
+          });
+        }
+
+        document.getElementById('pdvItemDropdown').style.display = 'none';
+        document.getElementById('pdvItemSearch').value = '';
+        this.renderCart();
+      }
+
+      updateCartQty(itemId, newQty) {
+        const qty = parseInt(newQty);
+        if (qty <= 0) {
+          this.cart = this.cart.filter(x => x.id !== itemId);
+        } else {
+          const item = this.cart.find(x => x.id === itemId);
+          if (item) item.quantity = qty;
+        }
+        this.renderCart();
+      }
+
+      removeFromCart(itemId) {
+        this.cart = this.cart.filter(x => x.id !== itemId);
+        this.renderCart();
+      }
+
+      clearCart() {
+        this.cart = [];
+        this.renderCart();
+      }
+
+      renderCart() {
+        const list = document.getElementById('cartItemsList');
+        if (this.cart.length === 0) {
+          list.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Carrinho vazio</div>`;
+          document.getElementById('cartSubtotal').innerText = 'R$ 0,00';
+          document.getElementById('cartTotal').innerText = 'R$ 0,00';
+          return;
+        }
+
+        let subtotal = 0;
+        list.innerHTML = this.cart.map(item => {
+          const totalLine = item.price * item.quantity;
+          subtotal += totalLine;
+          return `
+            <div class="cart-item">
+              <div style="flex:1; padding-right:0.5rem;">
+                <div style="font-weight:600; font-size:0.9rem;">${this.escapeHtml(item.name)}</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">${item.type === 'servico' ? '🛠️ Mão de Obra' : '📦 Peça'} • ${this.formatCurrency(item.price)} un.</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.35rem;">
+                <input type="number" min="1" class="form-control" style="width: 55px; padding: 0.2rem; text-align:center;" value="${item.quantity}" onchange="app.updateCartQty('${item.id}', this.value)">
+                <strong style="font-size:0.9rem; min-width: 65px; text-align:right;">${this.formatCurrency(totalLine)}</strong>
+                <button class="btn btn-outline btn-sm" style="color:var(--danger); padding:0.2rem 0.4rem;" onclick="app.removeFromCart('${item.id}')">✖</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        const discount = parseFloat(document.getElementById('cartDiscount').value) || 0;
+        const total = Math.max(0, subtotal - discount);
+
+        document.getElementById('cartSubtotal').innerText = this.formatCurrency(subtotal);
+        document.getElementById('cartTotal').innerText = this.formatCurrency(total);
+
+        this.calcRemainingDebt();
+      }
+
+      togglePartialPayInput() {
+        const status = document.getElementById('cartPaymentStatus').value;
+        const partialBox = document.getElementById('cartPartialFields');
+        if (status === 'parcial') {
+          partialBox.style.display = 'block';
+          this.calcRemainingDebt();
+        } else {
+          partialBox.style.display = 'none';
+        }
+      }
+
+      calcRemainingDebt() {
+        const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const discount = parseFloat(document.getElementById('cartDiscount').value) || 0;
+        const total = Math.max(0, subtotal - discount);
+
+        const status = document.getElementById('cartPaymentStatus').value;
+        if (status === 'parcial') {
+          const paidNow = parseFloat(document.getElementById('cartPaidNow').value) || 0;
+          const debt = Math.max(0, total - paidNow);
+          document.getElementById('cartRemainingDebt').innerText = this.formatCurrency(debt);
+        }
+      }
+
+      // Conclusão e Baixa de Estoque
+      checkout() {
+        if (this.cart.length === 0) {
+          alert('Adicione ao menos um item ao carrinho para finalizar a venda.');
+          return;
+        }
+
+        const paymentStatus = document.getElementById('cartPaymentStatus').value;
+        let customer = this.selectedCustomer;
+
+        if (paymentStatus === 'parcial' && !customer) {
+          alert('Para registrar venda a prazo/fiado ou pagamento parcial, é obrigatório selecionar um cliente!');
+          return;
+        }
+
+        const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const discount = parseFloat(document.getElementById('cartDiscount').value) || 0;
+        const total = Math.max(0, subtotal - discount);
+        const paymentMethod = document.getElementById('cartPaymentMethod').value;
+
+        let paidNow = total;
+        let remainingDebt = 0;
+
+        if (paymentStatus === 'parcial') {
+          paidNow = parseFloat(document.getElementById('cartPaidNow').value) || 0;
+          remainingDebt = Math.max(0, total - paidNow);
+        }
+
+        // 1. Baixa Automática no Estoque para produtos físicos
+        this.cart.forEach(cartItem => {
+          if (cartItem.type === 'produto') {
+            const stockItem = this.data.items.find(x => x.id === cartItem.id);
+            if (stockItem) {
+              stockItem.quantity = Math.max(0, stockItem.quantity - cartItem.quantity);
+            }
+          }
+        });
+
+        // 2. Lança saldo devedor para o cliente caso seja parcial/fiado
+        if (remainingDebt > 0 && customer) {
+          const c = this.data.customers.find(x => x.id === customer.id);
+          if (c) {
+            c.debt = (c.debt || 0) + remainingDebt;
+          }
+        }
+
+        // 3. Salva a Venda
+        const saleRecord = {
+          id: 'VENDA-' + Date.now().toString().slice(-6),
+          date: new Date().toISOString(),
+          customerId: customer ? customer.id : null,
+          customerName: customer ? customer.name : 'Consumidor Balcão',
+          customerPhone: customer ? customer.phone : '',
+          items: [...this.cart],
+          subtotal,
+          discount,
+          total,
+          paidNow,
+          remainingDebt,
+          paymentMethod,
+          paymentStatus
+        };
+
+        this.data.sales.unshift(saleRecord);
+        this.saveData();
+
+        // 4. Prepara e exibe comprovante
+        this.generateReceipt(saleRecord);
+
+        // Limpa carrinho e estado do PDV
+        this.cart = [];
+        this.clearPDVCustomer();
+        document.getElementById('cartDiscount').value = '0';
+        document.getElementById('cartPaidNow').value = '0';
+        document.getElementById('cartPaymentStatus').value = 'integral';
+        this.togglePartialPayInput();
+        this.renderCart();
+        this.renderAll();
+      }
+
+      // --- COMPROVANTE DE VENDA & WHATSAPP ---
+      generateReceipt(sale) {
+        const { storeName, storeSegment } = this.data.config;
+        const dateFormatted = new Date(sale.date).toLocaleString('pt-BR');
+
+        let text = `================================\n`;
+        text += `        ${storeName.toUpperCase()}\n`;
+        text += `  ${storeSegment}\n`;
+        text += `================================\n`;
+        text += `Cupom: ${sale.id}\n`;
+        text += `Data:  ${dateFormatted}\n`;
+        text += `Cliente: ${sale.customerName}\n`;
+        if (sale.customerPhone) text += `WhatsApp: ${sale.customerPhone}\n`;
+        text += `--------------------------------\n`;
+        text += `ITEM                QTD   VALOR\n`;
+        text += `--------------------------------\n`;
+
+        sale.items.forEach(i => {
+          const itemTitle = i.name.length > 18 ? i.name.substring(0, 18) + '.' : i.name.padEnd(19, ' ');
+          const qty = `${i.quantity}x`.padEnd(5, ' ');
+          const lineTotal = this.formatCurrency(i.price * i.quantity);
+          text += `${itemTitle} ${qty} ${lineTotal}\n`;
+        });
+
+        text += `--------------------------------\n`;
+        text += `Subtotal:              ${this.formatCurrency(sale.subtotal)}\n`;
+        if (sale.discount > 0) {
+          text += `Desconto:             -${this.formatCurrency(sale.discount)}\n`;
+        }
+        text += `TOTAL:                 ${this.formatCurrency(sale.total)}\n`;
+        text += `Forma Pagamento:       ${sale.paymentMethod}\n`;
+
+        if (sale.paymentStatus === 'parcial') {
+          text += `Valor Pago Imediato:   ${this.formatCurrency(sale.paidNow)}\n`;
+          text += `SALDO PENDENTE (FIADO):${this.formatCurrency(sale.remainingDebt)}\n`;
+        } else {
+          text += `Status: PAGO INTEGRALMENTE ✅\n`;
+        }
+        text += `================================\n`;
+        text += `       Obrigado pela preferência!\n`;
+        text += `================================\n`;
+
+        this.lastReceiptText = text;
+        this.lastCustomerPhone = sale.customerPhone;
+        document.getElementById('printReceipt').innerText = text;
+        this.openModal('receiptModal');
+      }
+
+      copyReceiptWhatsApp() {
+        if (!this.lastReceiptText) return;
+        navigator.clipboard.writeText(this.lastReceiptText).then(() => {
+          if (this.lastCustomerPhone) {
+            const rawPhone = this.lastCustomerPhone.replace(/\D/g, '');
+            const url = `https://wa.me/55${rawPhone}?text=${encodeURIComponent(this.lastReceiptText)}`;
+            window.open(url, '_blank');
+          } else {
+            alert('Texto do comprovante copiado para a Área de Transferência!');
+          }
+        });
+      }
+
+      // --- HISTÓRICO DE VENDAS ---
+      renderSales() {
+        const tbody = document.getElementById('salesTableBody');
+        const sales = this.data.sales || [];
+
+        if (sales.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Nenhuma venda registrada ainda.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = sales.map(s => `
+          <tr>
+            <td><code>${s.id}</code></td>
+            <td>${new Date(s.date).toLocaleString('pt-BR')}</td>
+            <td><strong>${this.escapeHtml(s.customerName)}</strong></td>
+            <td><small>${s.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</small></td>
+            <td><strong>${this.formatCurrency(s.total)}</strong></td>
+            <td>${s.paymentMethod}</td>
+            <td>
+              <span class="badge ${s.paymentStatus === 'integral' ? 'badge-success' : 'badge-warning'}">
+                ${s.paymentStatus === 'integral' ? 'Pago' : `Parcial (Deve ${this.formatCurrency(s.remainingDebt)})`}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-outline btn-sm" onclick="app.viewSaleReceipt('${s.id}')" title="Ver Comprovante">🧾</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      viewSaleReceipt(saleId) {
+        const sale = this.data.sales.find(s => s.id === saleId);
+        if (sale) this.generateReceipt(sale);
+      }
+
+      // --- BACKUP & SEGURANÇA DE DADOS (.JSON) ---
+      exportBackup() {
+        const backupData = JSON.stringify(this.data, null, 2);
+        const blob = new Blob([backupData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const timestamp = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `backup_${this.data.config.storeName.replace(/\s+/g, '_')}_${timestamp}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      importBackup(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        if (!confirm('Deseja realmente restaurar este arquivo de backup? Os dados atuais serão substituídos pelos dados do arquivo.')) {
+          input.value = '';
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const restored = JSON.parse(e.target.result);
+            if (restored && restored.items && restored.customers) {
+              this.data = restored;
+              this.saveData();
+              this.applyVisualSettings();
+              this.renderAll();
+              alert('Backup restaurado com sucesso!');
+            } else {
+              alert('Arquivo de backup inválido ou incompatível.');
+            }
+          } catch (err) {
+            alert('Erro ao processar o arquivo JSON de backup.');
+          }
+          input.value = '';
+        };
+        reader.readAsText(file);
+      }
+
+      resetSystem() {
+        if (confirm('Atenção: Deseja recarregar a base com os dados iniciais de demonstração da Oficina de Bicicletas?')) {
+          localStorage.removeItem(this.storageKey);
+          this.loadData();
+          this.applyVisualSettings();
+          this.renderAll();
+          alert('Sistema resetado para dados demonstrativos com sucesso!');
+        }
+      }
+
+      // --- UTILITÁRIOS GERAIS ---
+      renderAll() {
+        this.renderDashboard();
+        this.renderInventory();
+        this.renderCustomers();
+        this.renderSales();
+      }
+
+      openModal(modalId) {
+        const m = document.getElementById(modalId);
+        if (m) m.classList.add('active');
+      }
+
+      closeModal(modalId) {
+        const m = document.getElementById(modalId);
+        if (m) m.classList.remove('active');
+      }
+
+      closeAllModals() {
+        document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('active'));
+      }
+
+      formatCurrency(val) {
+        return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+      }
+
+      escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>"']/g, m => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[m]);
+      }
+    }
+
+    // Instanciação e Inicialização Global
+    const app = new StoreApp();
+    window.addEventListener('DOMContentLoaded', () => app.init());
+  </script>
+</body>
+</html>
