@@ -426,13 +426,18 @@
 
       </div>
 
-      <!-- Mural de Lembretes / Avisos da Oficina -->
+      <!-- Mural de Lembretes / Avisos da Oficina com Alarme de Horário -->
       <div class="card" style="margin-top: 1rem;">
         <div class="card-title">
-          <span>📌 Mural de Lembretes e Avisos Rápidos</span>
+          <span>📌 Mural de Lembretes & Alarmes de Horário</span>
+          <button class="btn btn-outline btn-sm" onclick="app.testAlertSound()" title="Testar Som">🔔 Testar Som do Windows</button>
         </div>
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-          <input type="text" id="newReminderInput" class="form-control" placeholder="Ex: Ligar p/ distribuidor; Montar roda aro 29..." onkeypress="if(event.key==='Enter') app.addReminder()">
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+          <input type="text" id="newReminderInput" class="form-control" style="flex: 2; min-width: 200px;" placeholder="Ex: Ligar p/ fornecedor; Entregar bike Scott..." onkeypress="if(event.key==='Enter') app.addReminder()">
+          <div style="display: flex; align-items: center; gap: 0.35rem;">
+            <label for="newReminderTime" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); white-space: nowrap;">⏰ Alarme:</label>
+            <input type="time" id="newReminderTime" class="form-control" style="width: 120px;" title="Defina o horário para soar o alarme sonoro">
+          </div>
           <button class="btn btn-primary" onclick="app.addReminder()">Adicionar</button>
         </div>
         <div id="remindersList" style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -1029,6 +1034,29 @@
     </div>
   </div>
 
+  <!-- MODAL: ALERTA SONORO DE LEMBRETE (WINDOWS ALERT) -->
+  <div class="modal-backdrop" id="reminderAlarmModal">
+    <div class="modal-box" style="max-width: 450px; border-top: 5px solid var(--warning);">
+      <div class="modal-header" style="background: var(--warning-light);">
+        <span style="display:flex; align-items:center; gap:0.5rem; color:#92400e;">
+          <span style="font-size:1.4rem;">⏰</span> <strong>Alarme de Lembrete!</strong>
+        </span>
+        <button class="modal-close-btn" onclick="app.closeModal('reminderAlarmModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align: center; padding: 1.5rem 1rem;">
+        <div id="alarmReminderTime" style="font-size: 1.1rem; font-weight: 800; color: var(--primary); margin-bottom: 0.5rem;">--:--</div>
+        <p id="alarmReminderText" style="font-size: 1.15rem; font-weight: 600; line-height: 1.4; color: var(--text);">
+          Descrição do lembrete...
+        </p>
+        <small style="color: var(--text-muted); display: block; margin-top: 0.75rem;">Horário programado atingido.</small>
+      </div>
+      <div class="modal-footer" style="justify-content: center; gap: 0.75rem;">
+        <button class="btn btn-outline" onclick="app.closeModal('reminderAlarmModal')">Fechar Alerta</button>
+        <button class="btn btn-success" id="btnMarkAlarmDone">Marcar como Concluído ✅</button>
+      </div>
+    </div>
+  </div>
+
   <!-- JAVASCRIPT LOGIC (MODULAR VANILLA JS) -->
   <script>
     /**
@@ -1056,6 +1084,8 @@
         this.selectedCustomer = null;
         this.stagingImportItems = [];
         this.currentReport = 'total';
+        this.audioCtx = null;
+        this.triggeredReminders = new Set();
       }
 
       init() {
@@ -1063,6 +1093,92 @@
         this.applyVisualSettings();
         this.bindShortcuts();
         this.renderAll();
+        this.startReminderClock();
+      }
+
+      // Reproduz som de alerta clássico estilo Windows (Beep harmônico duplo)
+      playWindowsAlertSound() {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          if (!this.audioCtx) {
+            this.audioCtx = new AudioContext();
+          }
+          if (this.audioCtx.state === 'suspended') {
+            this.audioCtx.resume();
+          }
+
+          const now = this.audioCtx.currentTime;
+
+          // Primeiro tom (800 Hz)
+          const osc1 = this.audioCtx.createOscillator();
+          const gain1 = this.audioCtx.createGain();
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(800, now);
+          gain1.gain.setValueAtTime(0.3, now);
+          gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc1.connect(gain1);
+          gain1.connect(this.audioCtx.destination);
+          osc1.start(now);
+          osc1.stop(now + 0.15);
+
+          // Segundo tom mais alto (1200 Hz) característico de notificação Windows
+          const osc2 = this.audioCtx.createOscillator();
+          const gain2 = this.audioCtx.createGain();
+          osc2.type = 'sine';
+          osc2.frequency.setValueAtTime(1200, now + 0.12);
+          gain2.gain.setValueAtTime(0.35, now + 0.12);
+          gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc2.connect(gain2);
+          gain2.connect(this.audioCtx.destination);
+          osc2.start(now + 0.12);
+          osc2.stop(now + 0.35);
+        } catch (e) {
+          console.warn("Áudio não reproduzido:", e);
+        }
+      }
+
+      testAlertSound() {
+        this.playWindowsAlertSound();
+      }
+
+      startReminderClock() {
+        // Verifica a cada 5 segundos se algum lembrete com hora bateu
+        setInterval(() => this.checkReminderAlarms(), 5000);
+      }
+
+      checkReminderAlarms() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const currentTimeStr = `${hours}:${minutes}`;
+
+        (this.data.reminders || []).forEach(r => {
+          if (!r.done && r.time && r.time === currentTimeStr) {
+            // Evita disparar repetidamente dentro do mesmo minuto
+            const triggerKey = `${r.id}_${currentTimeStr}`;
+            if (!this.triggeredReminders.has(triggerKey)) {
+              this.triggeredReminders.add(triggerKey);
+              this.fireReminderAlarm(r);
+            }
+          }
+        });
+      }
+
+      fireReminderAlarm(reminder) {
+        this.playWindowsAlertSound();
+
+        // Exibe modal em destaque
+        document.getElementById('alarmReminderTime').innerText = `⏰ Horário: ${reminder.time}`;
+        document.getElementById('alarmReminderText').innerText = reminder.text;
+        
+        const btnMark = document.getElementById('btnMarkAlarmDone');
+        btnMark.onclick = () => {
+          this.toggleReminder(reminder.id);
+          this.closeModal('reminderAlarmModal');
+        };
+
+        this.openModal('reminderAlarmModal');
       }
 
       // --- PERSISTÊNCIA DE DADOS ---
@@ -1471,7 +1587,7 @@
         this.renderReminders();
       }
 
-      // --- MURAL DE LEMBRETES ---
+      // --- MURAL DE LEMBRETES & ALARMES ---
       renderReminders() {
         const list = document.getElementById('remindersList');
         const items = this.data.reminders || [];
@@ -1481,28 +1597,43 @@
         }
 
         list.innerHTML = items.map(r => `
-          <div style="display:flex; justify-content:space-between; align-items:center; background: ${r.done ? '#f1f5f9' : 'var(--surface)'}; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 6px;">
-            <div style="display:flex; align-items:center; gap:0.6rem; text-decoration: ${r.done ? 'line-through' : 'none'}; color: ${r.done ? 'var(--text-muted)' : 'inherit'};">
+          <div style="display:flex; justify-content:space-between; align-items:center; background: ${r.done ? '#f1f5f9' : 'var(--surface)'}; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 6px; gap: 0.5rem;">
+            <div style="display:flex; align-items:center; gap:0.6rem; text-decoration: ${r.done ? 'line-through' : 'none'}; color: ${r.done ? 'var(--text-muted)' : 'inherit'}; flex: 1;">
               <input type="checkbox" ${r.done ? 'checked' : ''} onchange="app.toggleReminder('${r.id}')" style="width:16px; height:16px; cursor:pointer;">
               <span>${this.escapeHtml(r.text)}</span>
+              ${r.time ? `<span class="badge ${r.done ? 'badge-outline' : 'badge-primary'}" style="font-size:0.75rem;">⏰ ${r.time}</span>` : ''}
             </div>
-            <button class="btn btn-outline btn-sm" style="color:var(--danger); padding:0.2rem 0.5rem;" onclick="app.deleteReminder('${r.id}')">✖</button>
+            <div style="display:flex; gap:0.35rem; align-items:center;">
+              ${r.time && !r.done ? `<button class="btn btn-outline btn-sm" style="padding:0.2rem 0.4rem;" title="Testar som do alarme" onclick="app.testAlertSound()">🔔</button>` : ''}
+              <button class="btn btn-outline btn-sm" style="color:var(--danger); padding:0.2rem 0.5rem;" onclick="app.deleteReminder('${r.id}')">✖</button>
+            </div>
           </div>
         `).join('');
       }
 
       addReminder() {
         const input = document.getElementById('newReminderInput');
+        const timeInput = document.getElementById('newReminderTime');
         const text = input.value.trim();
+        const time = timeInput.value.trim();
         if (!text) return;
+
         this.data.reminders.unshift({
           id: 'rem_' + Date.now(),
           text: text,
+          time: time || null,
           done: false
         });
+
         input.value = '';
+        timeInput.value = '';
         this.saveData();
         this.renderReminders();
+
+        // Se adicionou com hora, já ativa o áudio context caso o navegador precise de interação
+        if (time) {
+          this.testAlertSound();
+        }
       }
 
       toggleReminder(id) {
