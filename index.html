@@ -79,7 +79,7 @@
     main {
       flex: 1;
       padding: 1rem;
-      max-width: 1200px;
+      max-width: 1250px;
       margin: 0 auto;
       width: 100%;
     }
@@ -106,12 +106,13 @@
       align-items: center;
       justify-content: space-between;
       gap: 0.5rem;
+      flex-wrap: wrap;
     }
 
     /* Metrics Grid */
     .metrics-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
       margin-bottom: 1.25rem;
     }
@@ -221,7 +222,7 @@
     /* PDV Layout */
     .pdv-grid {
       display: grid;
-      grid-template-columns: 1fr 340px;
+      grid-template-columns: 1fr 360px;
       gap: 1.25rem;
     }
     @media (max-width: 860px) {
@@ -257,7 +258,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       margin-top: 4px;
-      max-height: 220px;
+      max-height: 240px;
       overflow-y: auto;
       z-index: 50;
       box-shadow: var(--shadow);
@@ -272,7 +273,33 @@
     }
     .autocomplete-item:hover { background-color: var(--primary-light); }
 
-    /* Receipt print preview styling */
+    /* Relatórios Sub-abas */
+    .report-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+      overflow-x: auto;
+    }
+    .report-tab-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    .report-tab-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* Impressão & Comprovante */
     #printReceipt {
       font-family: 'Courier New', Courier, monospace;
       background: white;
@@ -284,9 +311,11 @@
     }
     @media print {
       body * { visibility: hidden; }
+      #printableArea, #printableArea * { visibility: visible; }
+      #printableArea { position: absolute; left: 0; top: 0; width: 100%; background: white; color: black; }
       #receiptModal, #receiptModal * { visibility: visible; }
       #receiptModal { position: absolute; left: 0; top: 0; width: 100%; background: white; }
-      .modal-footer, .modal-header { display: none !important; }
+      .modal-footer, .modal-header, nav, header { display: none !important; }
     }
   </style>
 </head>
@@ -302,6 +331,7 @@
       </div>
     </div>
     <div style="display:flex; gap:0.5rem; align-items:center;">
+      <button class="btn btn-outline btn-sm" onclick="app.showTab('relatorios')">📈 Relatórios</button>
       <button class="btn btn-primary btn-sm" onclick="app.showTab('pdv')">⚡ Abrir PDV [F2]</button>
     </div>
   </header>
@@ -313,6 +343,7 @@
     <button class="nav-btn" onclick="app.showTab('estoque')">📦 Estoque & Catálogo</button>
     <button class="nav-btn" onclick="app.showTab('clientes')">👥 Clientes</button>
     <button class="nav-btn" onclick="app.showTab('vendas')">📜 Histórico Vendas</button>
+    <button class="nav-btn" onclick="app.showTab('relatorios')">📑 Exportar Relatórios</button>
     <button class="nav-btn" onclick="app.showTab('config')">⚙️ Configurações</button>
   </nav>
 
@@ -401,11 +432,11 @@
           <span>📌 Mural de Lembretes e Avisos Rápidos</span>
         </div>
         <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-          <input type="text" id="newReminderInput" class="form-control" placeholder="Ex: Ligar p/ distribuidor de correntes; Revisar bike Scott do Carlos..." onkeypress="if(event.key==='Enter') app.addReminder()">
+          <input type="text" id="newReminderInput" class="form-control" placeholder="Ex: Ligar p/ distribuidor; Montar roda aro 29..." onkeypress="if(event.key==='Enter') app.addReminder()">
           <button class="btn btn-primary" onclick="app.addReminder()">Adicionar</button>
         </div>
         <div id="remindersList" style="display: flex; flex-direction: column; gap: 0.5rem;">
-          <!-- Items inserted dynamically -->
+          <!-- Lembretes dinâmicos -->
         </div>
       </div>
     </section>
@@ -413,7 +444,6 @@
     <!-- PDV (FRENTE DE CAIXA) -->
     <section id="pdv" class="tab-content">
       <div class="pdv-grid">
-        <!-- Coluna de Seleção de Itens e Cliente -->
         <div>
           <!-- Cliente Selecionado -->
           <div class="card">
@@ -422,7 +452,7 @@
               <button class="btn btn-outline btn-sm" onclick="app.openQuickClientModal()">+ Cadastro Rápido</button>
             </div>
             <div class="autocomplete-wrapper">
-              <input type="text" id="pdvCustomerSearch" class="form-control" placeholder="Buscar cliente por nome ou WhatsApp... (ou deixe vazio para Consumidor Padrão)" autocomplete="off" oninput="app.searchCustomerPDV(this.value)">
+              <input type="text" id="pdvCustomerSearch" class="form-control" placeholder="Buscar cliente por nome ou WhatsApp... (ou deixe vazio para Consumidor Balcão)" autocomplete="off" oninput="app.searchCustomerPDV(this.value)">
               <div id="pdvCustomerDropdown" class="autocomplete-list" style="display:none;"></div>
             </div>
             <div id="pdvSelectedCustomerBadge" style="margin-top: 0.5rem; display:none;">
@@ -437,19 +467,14 @@
           <!-- Busca e Inclusão de Produtos/Serviços -->
           <div class="card">
             <div class="card-title">
-              <span>🔍 Buscar Itens (Produtos & Mão de Obra)</span>
+              <span>🔍 Buscar Itens no Catálogo</span>
             </div>
             <div class="autocomplete-wrapper">
-              <input type="text" id="pdvItemSearch" class="form-control" placeholder="Digite o nome, código ou categoria do item..." autocomplete="off" oninput="app.searchItemPDV(this.value)">
+              <input type="text" id="pdvItemSearch" class="form-control" placeholder="Digite o nome do produto, código ou categoria (ex: Pneu, Freio, Corrente, Revisão)..." autocomplete="off" oninput="app.searchItemPDV(this.value)">
               <div id="pdvItemDropdown" class="autocomplete-list" style="display:none;"></div>
             </div>
-
-            <!-- Botões de Catálogo Rápido / Categorias -->
-            <div style="margin-top: 1rem; display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.4rem;" id="pdvQuickCategories">
-              <!-- Categorias rápidas -->
-            </div>
-            <div id="pdvCatalogCards" style="margin-top: 0.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.5rem; max-height: 240px; overflow-y: auto;">
-              <!-- Cards rápidos -->
+            <div style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-muted);">
+              💡 Dica: Digite no campo acima para pesquisar entre os mais de 70 itens do catálogo.
             </div>
           </div>
         </div>
@@ -518,7 +543,7 @@
     <section id="estoque" class="tab-content">
       <div class="card">
         <div class="card-title">
-          <span>📦 Controle de Estoque & Catálogo de Serviços</span>
+          <span>📦 Catálogo de Produtos e Serviços</span>
           <div style="display:flex; gap:0.5rem; flex-wrap: wrap;">
             <button class="btn btn-outline btn-sm" onclick="app.openImportModal()">📥 Importar em Lote (CSV/Colar)</button>
             <button class="btn btn-primary btn-sm" onclick="app.openItemModal()">+ Novo Item</button>
@@ -630,11 +655,48 @@
       </div>
     </section>
 
+    <!-- EXPORTAÇÃO DE RELATÓRIOS (VENDAS, CLIENTES, ESTOQUE, TOTAL) -->
+    <section id="relatorios" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>📑 Central de Relatórios e Exportação</span>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="app.printCurrentReport()">🖨️ Imprimir Relatório</button>
+            <button class="btn btn-primary btn-sm" onclick="app.exportCurrentReportCSV()">📥 Baixar Planilha (CSV)</button>
+          </div>
+        </div>
+
+        <!-- Seletor de Tipo de Relatório -->
+        <div class="report-tabs">
+          <button class="report-tab-btn active" id="btnReportTotal" onclick="app.switchReportView('total')">📊 Visão Geral (Total / DRE)</button>
+          <button class="report-tab-btn" id="btnReportVendas" onclick="app.switchReportView('vendas')">💰 Relatório de Vendas</button>
+          <button class="report-tab-btn" id="btnReportClientes" onclick="app.switchReportView('clientes')">👥 Relatório de Clientes & Débitos</button>
+          <button class="report-tab-btn" id="btnReportEstoque" onclick="app.switchReportView('estoque')">📦 Relatório de Estoque & Posição</button>
+        </div>
+
+        <!-- Área de visualização imprimível -->
+        <div id="printableArea">
+          <div id="reportHeader" style="margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 2px solid var(--border);">
+            <h2 id="reportTitle" style="font-size: 1.3rem; margin-bottom: 0.25rem;">Relatório Gerencial</h2>
+            <div id="reportSubtitle" style="font-size: 0.85rem; color: var(--text-muted);">Gerado em: --/--/----</div>
+          </div>
+          <div id="reportCardsSummary" class="metrics-grid" style="margin-bottom: 1.5rem;">
+            <!-- Indicadores chave do relatório -->
+          </div>
+          <div class="table-responsive">
+            <table id="reportMainTable">
+              <thead id="reportTableHead"></thead>
+              <tbody id="reportTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- CONFIGURAÇÕES & BACKUP -->
     <section id="config" class="tab-content">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
         
-        <!-- Identidade Visual e Customização White-label -->
         <div class="card">
           <div class="card-title">
             <span>🎨 Identidade Visual & Customização</span>
@@ -650,7 +712,6 @@
           <div class="form-group">
             <label class="form-label">Rótulo da Observação do Cliente (White-Label):</label>
             <input type="text" id="cfgObsLabel" class="form-control" placeholder="Ex: Modelo da Bicicleta, Placa, Aparelho...">
-            <small style="color:var(--text-muted); font-size: 0.75rem;">Muda o nome do campo nos cadastros para se adaptar a oficinas, assistência técnica, etc.</small>
           </div>
           <div class="form-group">
             <label class="form-label">Texto de Exemplo no Campo de Observação:</label>
@@ -674,7 +735,6 @@
           <button class="btn btn-primary" onclick="app.saveVisualSettings()">Salvar Alterações Visuais</button>
         </div>
 
-        <!-- Segurança de Dados & Backup -->
         <div class="card">
           <div class="card-title">
             <span>💾 Segurança de Dados & Backup</span>
@@ -692,8 +752,8 @@
               <input type="file" id="importBackupFile" class="form-control" accept=".json" onchange="app.importBackup(this)">
             </div>
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-              <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: #fca5a5;" onclick="app.resetSystem()">
-                ⚠️ Zerar Base de Dados de Demonstração
+              <button class="btn btn-outline btn-sm" style="color: var(--primary); border-color: var(--primary);" onclick="app.reloadCompleteCatalog()">
+                🔄 Recarregar Checklist Completo de Produtos (70+ itens)
               </button>
             </div>
           </div>
@@ -739,13 +799,15 @@
 
           <div class="form-group">
             <label class="form-label">Categoria</label>
-            <input type="text" id="itemCategory" class="form-control" list="categorySuggestions" placeholder="Ex: Pneus, Freios, Transmissão, Serviços...">
+            <input type="text" id="itemCategory" class="form-control" list="categorySuggestions" placeholder="Ex: Rodas, Pneus e Câmaras, Freios, Transmissão...">
             <datalist id="categorySuggestions">
-              <option value="Pneus & Câmaras">
-              <option value="Transmissão & Correntes">
-              <option value="Freios & Pastilhas">
-              <option value="Acessórios & Luzes">
-              <option value="Serviços & Oficina">
+              <option value="Rodas, Pneus e Câmaras">
+              <option value="Transmissão e Relação">
+              <option value="Sistema de Freios e Cabos">
+              <option value="Direção, Suspensão e Cockpit">
+              <option value="Acessórios e Segurança">
+              <option value="Ferramentas e Oficina">
+              <option value="Serviços e Mão de Obra">
             </datalist>
           </div>
 
@@ -825,12 +887,9 @@
             <textarea id="customerObs" class="form-control" rows="3" placeholder="Ex: Caloi Elite Aro 29, cor preta"></textarea>
           </div>
 
-          <!-- Histórico de Vendas e Débitos do Cliente (Exibido se edição) -->
           <div id="customerHistoryContainer" style="display:none; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
             <div style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.5rem;">Histórico & Débitos em Aberto:</div>
-            <div id="customerHistoryContent" style="font-size:0.85rem; max-height: 150px; overflow-y:auto;">
-              <!-- History entries -->
-            </div>
+            <div id="customerHistoryContent" style="font-size:0.85rem; max-height: 150px; overflow-y:auto;"></div>
           </div>
 
           <button type="submit" id="btnSubmitCustomer" style="display:none;"></button>
@@ -870,7 +929,7 @@
     </div>
   </div>
 
-  <!-- MODAL: REGISTRAR ABATIMENTO DE DÍVIDA / PAGAMENTO FIADO -->
+  <!-- MODAL: REGISTRAR ABATIMENTO DE DÍVIDA -->
   <div class="modal-backdrop" id="payDebtModal">
     <div class="modal-box" style="max-width: 420px;">
       <div class="modal-header">
@@ -925,7 +984,6 @@
           </div>
         </div>
 
-        <!-- Tela de Revisão com Validação de Duplicidades -->
         <div id="importStepReview" style="display:none;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.75rem;">
             <strong>Revisão de Validação de Duplicidade</strong>
@@ -942,9 +1000,7 @@
                   <th>Ação Sugerida</th>
                 </tr>
               </thead>
-              <tbody id="importReviewTableBody">
-                <!-- Rows analyzed -->
-              </tbody>
+              <tbody id="importReviewTableBody"></tbody>
             </table>
           </div>
         </div>
@@ -976,12 +1032,12 @@
   <!-- JAVASCRIPT LOGIC (MODULAR VANILLA JS) -->
   <script>
     /**
-     * Sistema de Gestão Comercial e PDV Modular
-     * Desenvolvido em Vanilla JS puro com armazenamento em LocalStorage / IndexedDB
+     * Sistema de Gestão Comercial, Estoque e PDV Modular
+     * Desenvolvido em Vanilla JS puro com persistência em LocalStorage
      */
     class StoreApp {
       constructor() {
-        this.storageKey = 'PDV_STORE_DATA_V1';
+        this.storageKey = 'PDV_STORE_DATA_V2';
         this.data = {
           config: {
             storeName: 'Oficina & Loja Pro',
@@ -999,6 +1055,7 @@
         this.cart = [];
         this.selectedCustomer = null;
         this.stagingImportItems = [];
+        this.currentReport = 'total';
       }
 
       init() {
@@ -1016,11 +1073,11 @@
             const parsed = JSON.parse(raw);
             this.data = { ...this.data, ...parsed };
           } else {
-            this.loadSeedData();
+            this.loadInitialCatalog();
           }
         } catch (e) {
-          console.error("Erro ao carregar banco de dados local:", e);
-          this.loadSeedData();
+          console.error("Erro ao carregar banco local:", e);
+          this.loadInitialCatalog();
         }
       }
 
@@ -1028,21 +1085,145 @@
         try {
           localStorage.setItem(this.storageKey, JSON.stringify(this.data));
         } catch (e) {
-          alert("Aviso: Limite de armazenamento local atingido ou modo privado bloqueado.");
+          alert("Aviso: Limite de armazenamento local atingido.");
         }
       }
 
-      // Dados de demonstração focados em oficina de bicicleta
-      loadSeedData() {
-        this.data.items = [
-          { id: '1', code: 'P001', name: 'Pneu Aro 29x2.10 Pirelli Scorpion', type: 'produto', category: 'Pneus', costPrice: 65.0, salePrice: 120.0, quantity: 8, minQuantity: 4, status: 'ativo' },
-          { id: '2', code: 'P002', name: 'Câmara de Ar Kenda 29 Válvula Fina', type: 'produto', category: 'Pneus', costPrice: 14.0, salePrice: 30.0, quantity: 2, minQuantity: 5, status: 'ativo' },
-          { id: '3', code: 'P003', name: 'Pastilha Freio a Disco Shimano B01S', type: 'produto', category: 'Freios', costPrice: 20.0, salePrice: 45.0, quantity: 1, minQuantity: 3, status: 'ativo' },
-          { id: '4', code: 'P004', name: 'Corrente Shimano Deore 10V', type: 'produto', category: 'Transmissão', costPrice: 85.0, salePrice: 160.0, quantity: 6, minQuantity: 2, status: 'ativo' },
-          { id: '5', code: 'S001', name: 'Revisão Geral Completa (Desmontagem)', type: 'servico', category: 'Serviços', costPrice: 0, salePrice: 150.0, quantity: 0, minQuantity: 0, status: 'ativo' },
-          { id: '6', code: 'S002', name: 'Regulagem de Câmbios e Freios', type: 'servico', category: 'Serviços', costPrice: 0, salePrice: 45.0, quantity: 0, minQuantity: 0, status: 'ativo' },
-          { id: '7', code: 'S003', name: 'Sangria de Freio Hidráulico (Par)', type: 'servico', category: 'Serviços', costPrice: 15.0, salePrice: 80.0, quantity: 0, minQuantity: 0, status: 'ativo' }
-        ];
+      // --- CATALOGO COMPLETO DA LISTA FORNECIDA ---
+      getChecklistCatalog() {
+        return [
+          // 1. RODAS, PNEUS E CÂMARAS
+          { code: 'ROD-001', name: 'Pneu Aro 16 (Infantil)', category: 'Rodas, Pneus e Câmaras', costPrice: 20.0, salePrice: 42.0, quantity: 6, minQuantity: 2 },
+          { code: 'ROD-002', name: 'Pneu Aro 20 (Infantil / BMX)', category: 'Rodas, Pneus e Câmaras', costPrice: 25.0, salePrice: 50.0, quantity: 8, minQuantity: 3 },
+          { code: 'ROD-003', name: 'Pneu Aro 24 (Juvenil)', category: 'Rodas, Pneus e Câmaras', costPrice: 28.0, salePrice: 55.0, quantity: 6, minQuantity: 2 },
+          { code: 'ROD-004', name: 'Pneu Aro 26 (Urbano/Liso)', category: 'Rodas, Pneus e Câmaras', costPrice: 32.0, salePrice: 65.0, quantity: 10, minQuantity: 4 },
+          { code: 'ROD-005', name: 'Pneu Aro 26 (Misto/Cravo MTB)', category: 'Rodas, Pneus e Câmaras', costPrice: 35.0, salePrice: 70.0, quantity: 12, minQuantity: 4 },
+          { code: 'ROD-006', name: 'Pneu Aro 29 (Urbano/Misto)', category: 'Rodas, Pneus e Câmaras', costPrice: 55.0, salePrice: 110.0, quantity: 14, minQuantity: 5 },
+          { code: 'ROD-007', name: 'Pneu Aro 29 (Cravo MTB Banda Leve)', category: 'Rodas, Pneus e Câmaras', costPrice: 68.0, salePrice: 135.0, quantity: 16, minQuantity: 5 },
+          { code: 'ROD-008', name: 'Pneu Aro 700 (Speed e Gravel)', category: 'Rodas, Pneus e Câmaras', costPrice: 75.0, salePrice: 150.0, quantity: 6, minQuantity: 2 },
+          { code: 'ROD-009', name: 'Câmara de Ar Aro 16 (Válvula Schrader/Grossa)', category: 'Rodas, Pneus e Câmaras', costPrice: 10.0, salePrice: 22.0, quantity: 8, minQuantity: 3 },
+          { code: 'ROD-010', name: 'Câmara de Ar Aro 20 (Válvula Schrader/Grossa)', category: 'Rodas, Pneus e Câmaras', costPrice: 11.0, salePrice: 24.0, quantity: 10, minQuantity: 4 },
+          { code: 'ROD-011', name: 'Câmara de Ar Aro 24 (Válvula Schrader/Grossa)', category: 'Rodas, Pneus e Câmaras', costPrice: 12.0, salePrice: 25.0, quantity: 8, minQuantity: 3 },
+          { code: 'ROD-012', name: 'Câmara de Ar Aro 26 (Válvula Schrader/Grossa)', category: 'Rodas, Pneus e Câmaras', costPrice: 13.0, salePrice: 26.0, quantity: 15, minQuantity: 5 },
+          { code: 'ROD-013', name: 'Câmara de Ar Aro 29 (Válvula Schrader/Grossa)', category: 'Rodas, Pneus e Câmaras', costPrice: 14.0, salePrice: 30.0, quantity: 20, minQuantity: 6 },
+          { code: 'ROD-014', name: 'Câmara de Ar Aro 700 (Válvula Schrader/Grossa)', category: 'Rodas, Pneus e Câmaras', costPrice: 15.0, salePrice: 32.0, quantity: 6, minQuantity: 2 },
+          { code: 'ROD-015', name: 'Câmara de Ar Aro 26 (Válvula Presta/Fina)', category: 'Rodas, Pneus e Câmaras', costPrice: 14.0, salePrice: 28.0, quantity: 8, minQuantity: 3 },
+          { code: 'ROD-016', name: 'Câmara de Ar Aro 29 (Válvula Presta/Fina)', category: 'Rodas, Pneus e Câmaras', costPrice: 15.0, salePrice: 32.0, quantity: 25, minQuantity: 8 },
+          { code: 'ROD-017', name: 'Câmara de Ar Aro 700 (Válvula Presta/Fina)', category: 'Rodas, Pneus e Câmaras', costPrice: 16.0, salePrice: 35.0, quantity: 8, minQuantity: 3 },
+          { code: 'ROD-018', name: 'Aro de Alumínio Parede Simples 36F', category: 'Rodas, Pneus e Câmaras', costPrice: 18.0, salePrice: 38.0, quantity: 6, minQuantity: 2 },
+          { code: 'ROD-019', name: 'Aro de Alumínio Parede Dupla 32F/36F Aro 29', category: 'Rodas, Pneus e Câmaras', costPrice: 35.0, salePrice: 75.0, quantity: 8, minQuantity: 3 },
+          { code: 'ROD-020', name: 'Roda Montada Básica Dianteira/Traseira Aro 26', category: 'Rodas, Pneus e Câmaras', costPrice: 55.0, salePrice: 110.0, quantity: 4, minQuantity: 2 },
+          { code: 'ROD-021', name: 'Roda Montada Básica Aro 29 Freio Disco', category: 'Rodas, Pneus e Câmaras', costPrice: 85.0, salePrice: 165.0, quantity: 4, minQuantity: 2 },
+          { code: 'ROD-022', name: 'Cubos Diant/Tras Alumínio Esferados (Par)', category: 'Rodas, Pneus e Câmaras', costPrice: 38.0, salePrice: 80.0, quantity: 5, minQuantity: 2 },
+          { code: 'ROD-023', name: 'Cubos Diant/Tras Rolamentados para Disco 6F (Par)', category: 'Rodas, Pneus e Câmaras', costPrice: 75.0, salePrice: 150.0, quantity: 4, minQuantity: 2 },
+          { code: 'ROD-024', name: 'Eixo Traseiro com Blocagem Rápida', category: 'Rodas, Pneus e Câmaras', costPrice: 16.0, salePrice: 35.0, quantity: 8, minQuantity: 3 },
+          { code: 'ROD-025', name: 'Raios Zincados/Inox com Niples (Jogo 72 un)', category: 'Rodas, Pneus e Câmaras', costPrice: 22.0, salePrice: 48.0, quantity: 6, minQuantity: 2 },
+          { code: 'ROD-026', name: 'Fita Protetora de Aro Alta Pressão (Par)', category: 'Rodas, Pneus e Câmaras', costPrice: 8.0, salePrice: 18.0, quantity: 12, minQuantity: 4 },
+          { code: 'ROD-027', name: 'Kit Remendo Frio + Cola Vulcanizante + Lixa', category: 'Rodas, Pneus e Câmaras', costPrice: 5.0, salePrice: 15.0, quantity: 25, minQuantity: 6 },
+          { code: 'ROD-028', name: 'Válvula Tubeless Par + Fita Tubeless', category: 'Rodas, Pneus e Câmaras', costPrice: 40.0, salePrice: 85.0, quantity: 5, minQuantity: 2 },
+          { code: 'ROD-029', name: 'Líquido Selante Tubeless 120ml / 500ml', category: 'Rodas, Pneus e Câmaras', costPrice: 25.0, salePrice: 55.0, quantity: 8, minQuantity: 3 },
+
+          // 2. TRANSMISSÃO E RELAÇÃO
+          { code: 'TRA-001', name: 'Corrente Grossa 1 Velocidade (Barra Forte)', category: 'Transmissão e Relação', costPrice: 14.0, salePrice: 28.0, quantity: 10, minQuantity: 3 },
+          { code: 'TRA-002', name: 'Corrente Fina Indexada 6/7/8V', category: 'Transmissão e Relação', costPrice: 22.0, salePrice: 48.0, quantity: 14, minQuantity: 4 },
+          { code: 'TRA-003', name: 'Corrente Indexada 9V / 10V / 11V / 12V', category: 'Transmissão e Relação', costPrice: 65.0, salePrice: 135.0, quantity: 8, minQuantity: 3 },
+          { code: 'TRA-004', name: 'Emenda Rápida de Corrente (PowerLink / Missing Link)', category: 'Transmissão e Relação', costPrice: 6.0, salePrice: 16.0, quantity: 20, minQuantity: 5 },
+          { code: 'TRA-005', name: 'Roda Livre (Catraca) 1 Velocidade 16D/18D/20D', category: 'Transmissão e Relação', costPrice: 16.0, salePrice: 35.0, quantity: 8, minQuantity: 2 },
+          { code: 'TRA-006', name: 'Roda Livre Indexada de Rosca 6V / 7V / 8V', category: 'Transmissão e Relação', costPrice: 26.0, salePrice: 58.0, quantity: 10, minQuantity: 3 },
+          { code: 'TRA-007', name: 'Cassete K7 8V / 9V / 10V / 11V / 12V', category: 'Transmissão e Relação', costPrice: 65.0, salePrice: 140.0, quantity: 6, minQuantity: 2 },
+          { code: 'TRA-008', name: 'Pedivela Monobloco 115/140/165mm e Coroas', category: 'Transmissão e Relação', costPrice: 24.0, salePrice: 52.0, quantity: 6, minQuantity: 2 },
+          { code: 'TRA-009', name: 'Pedivela Triplo Alumínio Ponta Quadrada', category: 'Transmissão e Relação', costPrice: 48.0, salePrice: 98.0, quantity: 6, minQuantity: 2 },
+          { code: 'TRA-010', name: 'Pedivela Integrado Hollowtech com Coroa Narrow Wide', category: 'Transmissão e Relação', costPrice: 110.0, salePrice: 230.0, quantity: 3, minQuantity: 1 },
+          { code: 'TRA-011', name: 'Câmbio Traseiro Indexado 6/7/8V com/sem Gancheira', category: 'Transmissão e Relação', costPrice: 30.0, salePrice: 65.0, quantity: 8, minQuantity: 3 },
+          { code: 'TRA-012', name: 'Câmbio Traseiro MegaRange 9V a 12V', category: 'Transmissão e Relação', costPrice: 85.0, salePrice: 175.0, quantity: 4, minQuantity: 2 },
+          { code: 'TRA-013', name: 'Câmbio Dianteiro Dual Pull 31.8/34.9mm', category: 'Transmissão e Relação', costPrice: 22.0, salePrice: 48.0, quantity: 6, minQuantity: 2 },
+          { code: 'TRA-014', name: 'Alavancas Passadoras Rapid Fire / STI (Par)', category: 'Transmissão e Relação', costPrice: 42.0, salePrice: 90.0, quantity: 7, minQuantity: 2 },
+          { code: 'TRA-015', name: 'Gancheiras de Quadro em Alumínio (Modelos comuns)', category: 'Transmissão e Relação', costPrice: 15.0, salePrice: 35.0, quantity: 10, minQuantity: 3 },
+          { code: 'TRA-016', name: 'Caixa de Centro 45mm para Monobloco com Colares', category: 'Transmissão e Relação', costPrice: 12.0, salePrice: 26.0, quantity: 8, minQuantity: 2 },
+          { code: 'TRA-017', name: 'Movimento Central Selado Ponta Quadrada 34.7mm', category: 'Transmissão e Relação', costPrice: 24.0, salePrice: 52.0, quantity: 12, minQuantity: 4 },
+          { code: 'TRA-018', name: 'Movimento Central Integrado Hollowtech II / Press Fit', category: 'Transmissão e Relação', costPrice: 45.0, salePrice: 95.0, quantity: 4, minQuantity: 2 },
+
+          // 3. SISTEMA DE FREIOS E CABOS
+          { code: 'FRE-001', name: 'Sapatas de Freio V-Brake Orbital com Rosca (Par)', category: 'Sistema de Freios e Cabos', costPrice: 7.0, salePrice: 18.0, quantity: 20, minQuantity: 5 },
+          { code: 'FRE-002', name: 'Sapatas de Freio Speed / Cantilever (Par)', category: 'Sistema de Freios e Cabos', costPrice: 8.0, salePrice: 20.0, quantity: 8, minQuantity: 2 },
+          { code: 'FRE-003', name: 'Hastes de Freio V-Brake em Alumínio com Molas', category: 'Sistema de Freios e Cabos', costPrice: 16.0, salePrice: 36.0, quantity: 8, minQuantity: 3 },
+          { code: 'FRE-004', name: 'Sanfonas e Guias de Cabo (Macarrão) V-Brake', category: 'Sistema de Freios e Cabos', costPrice: 2.0, salePrice: 6.0, quantity: 30, minQuantity: 10 },
+          { code: 'FRE-005', name: 'Pastilhas de Freio a Disco (Shimano B01S / Quadrada / GTA)', category: 'Sistema de Freios e Cabos', costPrice: 12.0, salePrice: 30.0, quantity: 18, minQuantity: 5 },
+          { code: 'FRE-006', name: 'Rotores de Disco 160mm e 180mm 6 Parafusos', category: 'Sistema de Freios e Cabos', costPrice: 18.0, salePrice: 42.0, quantity: 8, minQuantity: 3 },
+          { code: 'FRE-007', name: 'Pinças de Freio a Disco Mecânico (Par)', category: 'Sistema de Freios e Cabos', costPrice: 38.0, salePrice: 85.0, quantity: 5, minQuantity: 2 },
+          { code: 'FRE-008', name: 'Kit Freio a Disco Hidráulico Completo Diant/Tras', category: 'Sistema de Freios e Cabos', costPrice: 130.0, salePrice: 260.0, quantity: 4, minQuantity: 2 },
+          { code: 'FRE-009', name: 'Maçanetas (Manetes) de Freio em Alumínio', category: 'Sistema de Freios e Cabos', costPrice: 16.0, salePrice: 35.0, quantity: 10, minQuantity: 3 },
+          { code: 'FRE-010', name: 'Óleo Mineral Freio Hidráulico / Fluido DOT 100ml', category: 'Sistema de Freios e Cabos', costPrice: 18.0, salePrice: 40.0, quantity: 6, minQuantity: 2 },
+          { code: 'FRE-011', name: 'Cabo de Aço para Freio Inox (MTB e Speed)', category: 'Sistema de Freios e Cabos', costPrice: 3.0, salePrice: 10.0, quantity: 40, minQuantity: 10 },
+          { code: 'FRE-012', name: 'Cabo de Aço para Câmbio Indexado Inox', category: 'Sistema de Freios e Cabos', costPrice: 3.5, salePrice: 10.0, quantity: 40, minQuantity: 10 },
+          { code: 'FRE-013', name: 'Conduíte com Teflon por Metro (Freio e Câmbio)', category: 'Sistema de Freios e Cabos', costPrice: 4.0, salePrice: 12.0, quantity: 30, minQuantity: 10 },
+          { code: 'FRE-014', name: 'Terminais de Cabo, Conduíte e Reguladores (Kit)', category: 'Sistema de Freios e Cabos', costPrice: 1.0, salePrice: 4.0, quantity: 50, minQuantity: 15 },
+
+          // 4. DIREÇÃO, SUSPENSÃO E COCKPIT
+          { code: 'DIR-001', name: 'Caixa de Direção Standard / Mega Over (Rosca e Aheadset)', category: 'Direção, Suspensão e Cockpit', costPrice: 15.0, salePrice: 35.0, quantity: 8, minQuantity: 2 },
+          { code: 'DIR-002', name: 'Caixa de Direção Semi-integrada e Tapered Cônica', category: 'Direção, Suspensão e Cockpit', costPrice: 32.0, salePrice: 70.0, quantity: 5, minQuantity: 2 },
+          { code: 'DIR-003', name: 'Espaçadores de Direção, Tampa e Aranha de Fixação', category: 'Direção, Suspensão e Cockpit', costPrice: 6.0, salePrice: 16.0, quantity: 15, minQuantity: 4 },
+          { code: 'DIR-004', name: 'Guidão Reto/Curvo MTB Alumínio 31.8mm', category: 'Direção, Suspensão e Cockpit', costPrice: 32.0, salePrice: 70.0, quantity: 6, minQuantity: 2 },
+          { code: 'DIR-005', name: 'Suporte de Guidão (Mesa Aheadset Alumínio)', category: 'Direção, Suspensão e Cockpit', costPrice: 28.0, salePrice: 65.0, quantity: 6, minQuantity: 2 },
+          { code: 'DIR-006', name: 'Garfo Rígido em Aço e Alumínio Aro 20/26/29', category: 'Direção, Suspensão e Cockpit', costPrice: 45.0, salePrice: 95.0, quantity: 3, minQuantity: 1 },
+          { code: 'DIR-007', name: 'Suspensão Dianteira MTB Aro 29 com Trava no Ombro', category: 'Direção, Suspensão e Cockpit', costPrice: 110.0, salePrice: 240.0, quantity: 4, minQuantity: 1 },
+          { code: 'DIR-008', name: 'Selim Confortável Largo com Molas/Elastômero', category: 'Direção, Suspensão e Cockpit', costPrice: 28.0, salePrice: 65.0, quantity: 8, minQuantity: 2 },
+          { code: 'DIR-009', name: 'Selim Esportivo Vazado MTB/Speed Antiprostático', category: 'Direção, Suspensão e Cockpit', costPrice: 38.0, salePrice: 85.0, quantity: 6, minQuantity: 2 },
+          { code: 'DIR-010', name: 'Canote de Selim Alumínio 27.2mm / 31.6mm', category: 'Direção, Suspensão e Cockpit', costPrice: 25.0, salePrice: 55.0, quantity: 6, minQuantity: 2 },
+          { code: 'DIR-011', name: 'Abraçadeira de Selim com Blocagem Rápida', category: 'Direção, Suspensão e Cockpit', costPrice: 8.0, salePrice: 20.0, quantity: 10, minQuantity: 3 },
+          { code: 'DIR-012', name: 'Pedais Plataforma Nylon Rosca 9/16 e 1/2 (Par)', category: 'Direção, Suspensão e Cockpit', costPrice: 14.0, salePrice: 32.0, quantity: 12, minQuantity: 4 },
+          { code: 'DIR-013', name: 'Pedais Plataforma em Alumínio com Esferas (Par)', category: 'Direção, Suspensão e Cockpit', costPrice: 28.0, salePrice: 65.0, quantity: 8, minQuantity: 2 },
+          { code: 'DIR-014', name: 'Manoplas Anatômicas de Borracha / Silicone / Trava', category: 'Direção, Suspensão e Cockpit', costPrice: 12.0, salePrice: 28.0, quantity: 14, minQuantity: 4 },
+          { code: 'DIR-015', name: 'Fita de Guidão para Speed e Gravel com Terminais', category: 'Direção, Suspensão e Cockpit', costPrice: 24.0, salePrice: 55.0, quantity: 4, minQuantity: 1 },
+
+          // 5. ACESSÓRIOS DE BALCÃO E SEGURANÇA
+          { code: 'ACE-001', name: 'Capacete Ciclismo com Led Traseiro Ajustável', category: 'Acessórios e Segurança', costPrice: 42.0, salePrice: 95.0, quantity: 6, minQuantity: 2 },
+          { code: 'ACE-002', name: 'Kit Luzes Sinalizadoras Diant/Tras Recarregável USB', category: 'Acessórios e Segurança', costPrice: 16.0, salePrice: 38.0, quantity: 15, minQuantity: 4 },
+          { code: 'ACE-003', name: 'Campainha Trim-Trim e Buzina Infantil', category: 'Acessórios e Segurança', costPrice: 6.0, salePrice: 15.0, quantity: 12, minQuantity: 3 },
+          { code: 'ACE-004', name: 'Cadeado Espiral com Chave ou Segredo 1m', category: 'Acessórios e Segurança', costPrice: 14.0, salePrice: 32.0, quantity: 10, minQuantity: 3 },
+          { code: 'ACE-005', name: 'Suporte de Garrafa + Caramanhola Térmica', category: 'Acessórios e Segurança', costPrice: 15.0, salePrice: 35.0, quantity: 12, minQuantity: 3 },
+          { code: 'ACE-006', name: 'Bagageiro Traseiro em Alumínio Reforçado', category: 'Acessórios e Segurança', costPrice: 45.0, salePrice: 98.0, quantity: 4, minQuantity: 1 },
+          { code: 'ACE-007', name: 'Descanso Lateral (Pezinho) Regulável em Alumínio', category: 'Acessórios e Segurança', costPrice: 16.0, salePrice: 38.0, quantity: 8, minQuantity: 2 },
+          { code: 'ACE-008', name: 'Cadeirinha Infantil Dianteira/Traseira para Bike', category: 'Acessórios e Segurança', costPrice: 55.0, salePrice: 125.0, quantity: 3, minQuantity: 1 },
+          { code: 'ACE-009', name: 'Rodinhas Laterais de Apoio Aro 16 a 20', category: 'Acessórios e Segurança', costPrice: 20.0, salePrice: 45.0, quantity: 6, minQuantity: 2 },
+          { code: 'ACE-010', name: 'Bolsa de Quadro / Suporte de Celular Impermeável', category: 'Acessórios e Segurança', costPrice: 22.0, salePrice: 50.0, quantity: 8, minQuantity: 2 },
+          { code: 'ACE-011', name: 'Velocímetro Digital Sem Fio (Ciclocomputador)', category: 'Acessórios e Segurança', costPrice: 28.0, salePrice: 65.0, quantity: 5, minQuantity: 2 },
+          { code: 'ACE-012', name: 'Óleo Lubrificante de Cera para Corrente 60ml/120ml', category: 'Acessórios e Segurança', costPrice: 18.0, salePrice: 40.0, quantity: 15, minQuantity: 4 },
+          { code: 'ACE-013', name: 'Desengraxante e Limpa Corrente Spray', category: 'Acessórios e Segurança', costPrice: 15.0, salePrice: 35.0, quantity: 10, minQuantity: 3 },
+
+          // 6. FERRAMENTAS DE OFICINA E REPARO PORTÁTIL
+          { code: 'OFI-001', name: 'Jogo de Chaves Allen e Torx Canivete', category: 'Ferramentas e Oficina', costPrice: 20.0, salePrice: 48.0, quantity: 5, minQuantity: 2 },
+          { code: 'OFI-002', name: 'Extrator de Pedivela Ponta Quadrada', category: 'Ferramentas e Oficina', costPrice: 15.0, salePrice: 35.0, quantity: 4, minQuantity: 1 },
+          { code: 'OFI-003', name: 'Extrator de Movimento Central Estriado', category: 'Ferramentas e Oficina', costPrice: 16.0, salePrice: 38.0, quantity: 4, minQuantity: 1 },
+          { code: 'OFI-004', name: 'Extrator de Cassete e Chave Chicote', category: 'Ferramentas e Oficina', costPrice: 28.0, salePrice: 65.0, quantity: 4, minQuantity: 1 },
+          { code: 'OFI-005', name: 'Chave Extratora de Pino de Corrente', category: 'Ferramentas e Oficina', costPrice: 18.0, salePrice: 42.0, quantity: 5, minQuantity: 2 },
+          { code: 'OFI-006', name: 'Bomba de Pé com Manômetro Bico Duplo', category: 'Ferramentas e Oficina', costPrice: 45.0, salePrice: 98.0, quantity: 4, minQuantity: 1 },
+          { code: 'OFI-007', name: 'Mini Bomba Portátil com Suporte de Quadro', category: 'Ferramentas e Oficina', costPrice: 18.0, salePrice: 42.0, quantity: 8, minQuantity: 2 },
+          { code: 'OFI-008', name: 'Espátulas de Aço/Nylon para Tirar Pneu (Trio)', category: 'Ferramentas e Oficina', costPrice: 6.0, salePrice: 16.0, quantity: 15, minQuantity: 4 },
+
+          // 7. SERVIÇOS E MÃO DE OBRA
+          { code: 'SRV-001', name: 'Revisão Geral Completa (Desmontagem e Lubrificação)', category: 'Serviços e Mão de Obra', costPrice: 0, salePrice: 160.0, quantity: 0, minQuantity: 0, type: 'servico' },
+          { code: 'SRV-002', name: 'Regulagem de Câmbios Dianteiro e Traseiro', category: 'Serviços e Mão de Obra', costPrice: 0, salePrice: 45.0, quantity: 0, minQuantity: 0, type: 'servico' },
+          { code: 'SRV-003', name: 'Sangria de Freio Hidráulico (Par com Fluido)', category: 'Serviços e Mão de Obra', costPrice: 15.0, salePrice: 85.0, quantity: 0, minQuantity: 0, type: 'servico' },
+          { code: 'SRV-004', name: 'Alinhamento e Desempeno de Roda / Raiação', category: 'Serviços e Mão de Obra', costPrice: 0, salePrice: 40.0, quantity: 0, minQuantity: 0, type: 'servico' },
+          { code: 'SRV-005', name: 'Instalação de Tubeless (Par de Rodas)', category: 'Serviços e Mão de Obra', costPrice: 0, salePrice: 60.0, quantity: 0, minQuantity: 0, type: 'servico' },
+          { code: 'SRV-006', name: 'Troca de Câmara de Ar / Pneu (Mão de Obra)', category: 'Serviços e Mão de Obra', costPrice: 0, salePrice: 15.0, quantity: 0, minQuantity: 0, type: 'servico' }
+        ].map((item, idx) => ({
+          id: 'item_' + (idx + 1),
+          code: item.code,
+          name: item.name,
+          category: item.category,
+          costPrice: item.costPrice,
+          salePrice: item.salePrice,
+          quantity: item.quantity,
+          minQuantity: item.minQuantity,
+          type: item.type || 'produto',
+          status: 'ativo'
+        }));
+      }
+
+      loadInitialCatalog() {
+        this.data.items = this.getChecklistCatalog();
 
         this.data.customers = [
           { id: 'c1', name: 'Carlos Eduardo Silva', phone: '(11) 98765-4321', email: 'carlos@email.com', obs: 'Oggi Big Wheel 7.3 Azul', debt: 80.0, isIncomplete: false },
@@ -1052,10 +1233,29 @@
 
         this.data.reminders = [
           { id: 'r1', text: 'Entregar bike Scott do cliente Carlos até às 17h', done: false },
-          { id: 'r2', text: 'Pedir lote de câmaras de ar aro 29 com o distribuidor', done: false }
+          { id: 'r2', text: 'Checar estoque de câmaras 29 e pastilhas de freio', done: false }
         ];
 
         this.saveData();
+      }
+
+      reloadCompleteCatalog() {
+        if (confirm('Deseja recarregar a lista completa com todos os itens do checklist (mais de 70 produtos e serviços)? Itens existentes serão preservados ou completados.')) {
+          const checklist = this.getChecklistCatalog();
+          let added = 0;
+          
+          checklist.forEach(checkItem => {
+            const exists = this.data.items.find(i => i.code === checkItem.code || i.name.toLowerCase() === checkItem.name.toLowerCase());
+            if (!exists) {
+              this.data.items.push(checkItem);
+              added++;
+            }
+          });
+
+          this.saveData();
+          this.renderAll();
+          alert(`Catálogo atualizado! ${added} novos produtos do checklist foram adicionados.`);
+        }
       }
 
       // --- NAVEGAÇÃO & ATALHOS ---
@@ -1071,6 +1271,8 @@
 
         if (tabId === 'pdv') {
           setTimeout(() => document.getElementById('pdvItemSearch').focus(), 100);
+        } else if (tabId === 'relatorios') {
+          this.renderReportView();
         }
         this.renderAll();
       }
@@ -1100,13 +1302,11 @@
         document.getElementById('appStoreSegment').innerText = storeSegment || 'Sistema de Gestão & PDV';
         document.title = `${storeName} - Gestão & PDV`;
 
-        // Cores CSS
         if (primaryColor) {
           document.documentElement.style.setProperty('--primary', primaryColor);
           document.documentElement.style.setProperty('--primary-hover', primaryColor);
         }
 
-        // Logo
         const logoContainer = document.getElementById('brandLogoContainer');
         if (logoBase64) {
           logoContainer.innerHTML = `<img src="${logoBase64}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`;
@@ -1114,7 +1314,6 @@
           logoContainer.innerHTML = '🚲';
         }
 
-        // Rótulos Dinâmicos de Cliente
         const label = obsLabel || 'Modelo da Bicicleta';
         const placeholder = obsPlaceholder || 'Ex: Caloi Elite Aro 29...';
         
@@ -1127,7 +1326,6 @@
         const custObs = document.getElementById('customerObs');
         if (custObs) custObs.placeholder = placeholder;
 
-        // Preenche campos da aba de config
         document.getElementById('cfgStoreName').value = storeName;
         document.getElementById('cfgStoreSegment').value = storeSegment;
         document.getElementById('cfgObsLabel').value = obsLabel;
@@ -1182,7 +1380,6 @@
         const todayStr = new Date().toISOString().split('T')[0];
         const currentMonthStr = todayStr.substring(0, 7);
 
-        // Vendas hoje & mês
         let salesToday = 0;
         let countToday = 0;
         let salesMonth = 0;
@@ -1204,7 +1401,6 @@
         document.getElementById('dashSalesMonth').innerText = this.formatCurrency(salesMonth);
         document.getElementById('dashSalesMonthCount').innerText = `${countMonth} venda(s)`;
 
-        // Total a receber (devedores)
         let totalReceivable = 0;
         let debtorsCount = 0;
         const debtors = [];
@@ -1221,10 +1417,9 @@
         document.getElementById('dashDebtorsCount').innerText = `${debtorsCount} pendente(s)`;
         document.getElementById('debtorsBadge').innerText = `${debtorsCount} devedor(es)`;
 
-        // Tabela Devedores
         const debtorsTbody = document.getElementById('debtorsTableBody');
         if (debtors.length === 0) {
-          debtorsTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding:1rem;">Nenhum cliente com débito pendente. Parabéns! 🎉</td></tr>`;
+          debtorsTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--text-muted); padding:1rem;">Nenhum débito pendente. Parabéns! 🎉</td></tr>`;
         } else {
           debtorsTbody.innerHTML = debtors.map(c => `
             <tr>
@@ -1238,7 +1433,6 @@
           `).join('');
         }
 
-        // Valor do Estoque e Alertas de Estoque Baixo
         let totalStockValue = 0;
         let physicalCount = 0;
         const lowStockItems = [];
@@ -1274,7 +1468,6 @@
           `).join('');
         }
 
-        // Lembretes
         this.renderReminders();
       }
 
@@ -1333,14 +1526,15 @@
         const categoryFilter = document.getElementById('inventoryCategoryFilter')?.value || '';
         const typeFilter = document.getElementById('inventoryTypeFilter')?.value || '';
 
-        // Preenche dropdown de categorias dinâmicas
         const categories = [...new Set(this.data.items.map(i => i.category).filter(Boolean))];
         const catSelect = document.getElementById('inventoryCategoryFilter');
-        if (catSelect && catSelect.children.length <= 1) {
+        if (catSelect) {
+          catSelect.innerHTML = `<option value="">Todas as Categorias (${categories.length})</option>`;
           categories.forEach(cat => {
             const opt = document.createElement('option');
             opt.value = cat;
             opt.innerText = cat;
+            if (cat === categoryFilter) opt.selected = true;
             catSelect.appendChild(opt);
           });
         }
@@ -1368,7 +1562,7 @@
               <td><code>${item.code || '-'}</code></td>
               <td><strong>${this.escapeHtml(item.name)}</strong></td>
               <td><span class="badge ${isService ? 'badge-primary' : 'badge-outline'}" style="background:#f1f5f9;">${isService ? '🛠️ Serviço' : '📦 Produto'}</span></td>
-              <td>${item.category || '-'}</td>
+              <td><small>${item.category || '-'}</small></td>
               <td>${this.formatCurrency(item.costPrice)}</td>
               <td><strong>${this.formatCurrency(item.salePrice)}</strong></td>
               <td><span style="color:var(--success); font-weight:700;">+${margin}%</span></td>
@@ -1498,7 +1692,7 @@
         }
       }
 
-      // --- IMPORTAÇÃO INTELIGENTE DE ESTOQUE COM VALIDAÇÃO DE DUPLICIDADE ---
+      // --- IMPORTAÇÃO INTELIGENTE DE ESTOQUE ---
       openImportModal() {
         document.getElementById('importRawText').value = '';
         document.getElementById('importFile').value = '';
@@ -1536,7 +1730,6 @@
           const cleanLine = line.trim();
           if (!cleanLine || cleanLine.startsWith('#')) return;
 
-          // Aceita separadores: ponto e vírgula (;), vírgula (,) ou tabulação (\t)
           let parts = cleanLine.split(';');
           if (parts.length === 1) parts = cleanLine.split('\t');
           if (parts.length === 1) parts = cleanLine.split(',');
@@ -1550,11 +1743,9 @@
             const quantity = parseInt(parts[5] || '1') || 1;
 
             if (name) {
-              // Verificação Inteligente de Duplicidade
               const existingExactCode = this.data.items.find(i => i.code && i.code.toLowerCase() === code.toLowerCase());
               const existingExactName = this.data.items.find(i => i.name.toLowerCase() === name.toLowerCase());
               
-              // Similaridade fonética / parcial por nome
               const similarNameItem = this.data.items.find(i => {
                 const s1 = i.name.toLowerCase();
                 const s2 = name.toLowerCase();
@@ -1562,20 +1753,16 @@
               });
 
               let duplicateStatus = 'NOVO';
-              let suggestedAction = 'Cadastrar Novo Item';
               let matchItem = null;
 
               if (existingExactCode) {
                 duplicateStatus = 'EXISTE_CODIGO';
-                suggestedAction = 'Item com mesmo código. Atualizar estoque (+qtd) e preço.';
                 matchItem = existingExactCode;
               } else if (existingExactName) {
                 duplicateStatus = 'EXISTE_NOME';
-                suggestedAction = 'Item com mesmo nome. Somar quantidade e atualizar preço.';
                 matchItem = existingExactName;
               } else if (similarNameItem) {
                 duplicateStatus = 'POSSIVEL_DUPLICADO';
-                suggestedAction = `Possível duplicidade com "${similarNameItem.name}". Conferir.`;
                 matchItem = similarNameItem;
               }
 
@@ -1587,7 +1774,6 @@
                 salePrice: salePrice || (costPrice * 1.6),
                 quantity,
                 duplicateStatus,
-                suggestedAction,
                 matchItem
               });
             }
@@ -1595,11 +1781,10 @@
         });
 
         if (this.stagingImportItems.length === 0) {
-          alert('Não foi possível identificar itens válidos no texto colado. Verifique o padrão.');
+          alert('Não foi possível identificar itens válidos no texto colado.');
           return;
         }
 
-        // Renderiza tela de revisão
         const tbody = document.getElementById('importReviewTableBody');
         tbody.innerHTML = this.stagingImportItems.map((item, idx) => {
           let badgeClass = 'badge-success';
@@ -1675,7 +1860,7 @@
         this.saveData();
         this.closeModal('importModal');
         this.renderAll();
-        alert(`Importação finalizada com sucesso!\n• Novos itens cadastrados: ${created}\n• Itens atualizados no estoque: ${updated}`);
+        alert(`Importação finalizada com sucesso!\n• Novos itens: ${created}\n• Itens somados no estoque: ${updated}`);
       }
 
       // --- CLIENTES ---
@@ -1739,7 +1924,6 @@
             document.getElementById('customerEmail').value = c.email || '';
             document.getElementById('customerObs').value = c.obs || '';
 
-            // Renderiza histórico de compras e débitos
             const history = (this.data.sales || []).filter(s => s.customerId === c.id);
             const historyContent = document.getElementById('customerHistoryContent');
             if (history.length > 0) {
@@ -1802,7 +1986,6 @@
         }
       }
 
-      // Máscara dinâmica de telefone com 10 e 11 dígitos
       maskPhone(input) {
         let v = input.value.replace(/\D/g, '');
         if (v.length > 11) v = v.substring(0, 11);
@@ -1840,7 +2023,7 @@
           email: '',
           obs: '',
           debt: 0.0,
-          isIncomplete: true // Sinalizador requerido no requisito 2.E
+          isIncomplete: true
         };
 
         this.data.customers.push(newCust);
@@ -1850,7 +2033,7 @@
         this.renderCustomers();
       }
 
-      // --- ABATIMENTO DE DÍVIDAS / CONTAS A RECEBER ---
+      // --- ABATIMENTO DE DÍVIDAS ---
       openPayDebtModal(customerId) {
         const c = this.data.customers.find(x => x.id === customerId);
         if (!c) return;
@@ -1876,23 +2059,25 @@
         const paid = Math.min(amount, c.debt);
         c.debt -= paid;
 
-        // Registra transação no histórico de vendas como recebimento de débito
         this.data.sales.push({
           id: 'REC-' + Date.now().toString().slice(-6),
           date: new Date().toISOString(),
           customerId: c.id,
           customerName: c.name,
-          items: [{ name: `Recebimento Débito / Fiado (${method})`, quantity: 1, price: paid }],
+          items: [{ name: `Recebimento Débito / Fiado (${method})`, quantity: 1, price: paid, costPrice: 0 }],
           total: paid,
+          subtotal: paid,
+          discount: 0,
+          paidNow: paid,
+          remainingDebt: 0,
           paymentMethod: method,
-          paymentStatus: 'integral',
-          remainingDebt: 0
+          paymentStatus: 'integral'
         });
 
         this.saveData();
         this.closeModal('payDebtModal');
         this.renderAll();
-        alert(`Recebimento de ${this.formatCurrency(paid)} registrado com sucesso para ${c.name}!`);
+        alert(`Recebimento de ${this.formatCurrency(paid)} registrado para ${c.name}!`);
       }
 
       // --- FRENTE DE CAIXA (PDV) ---
@@ -1970,7 +2155,7 @@
           return;
         }
 
-        dropdown.innerHTML = matches.map(item => `
+        dropdown.innerHTML = matches.slice(0, 15).map(item => `
           <div class="autocomplete-item" onclick="app.addItemToCart('${item.id}')">
             <div>
               <strong>${this.escapeHtml(item.name)}</strong>
@@ -1991,12 +2176,11 @@
         const item = this.data.items.find(x => x.id === itemId);
         if (!item) return;
 
-        // Validação de estoque físico
         const existingCartItem = this.cart.find(c => c.id === item.id);
         const currentQtyInCart = existingCartItem ? existingCartItem.quantity : 0;
 
         if (item.type === 'produto' && currentQtyInCart + 1 > item.quantity) {
-          if (!confirm(`Atenção: Quantidade em estoque (${item.quantity}) excedida para "${item.name}". Deseja adicionar mesmo assim?`)) {
+          if (!confirm(`Atenção: Estoque insuficiente (${item.quantity}) para "${item.name}". Deseja adicionar mesmo assim?`)) {
             return;
           }
         }
@@ -2010,6 +2194,7 @@
             code: item.code,
             type: item.type,
             price: item.salePrice,
+            costPrice: item.costPrice || 0,
             quantity: 1
           });
         }
@@ -2101,7 +2286,6 @@
         }
       }
 
-      // Conclusão e Baixa de Estoque
       checkout() {
         if (this.cart.length === 0) {
           alert('Adicione ao menos um item ao carrinho para finalizar a venda.');
@@ -2112,7 +2296,7 @@
         let customer = this.selectedCustomer;
 
         if (paymentStatus === 'parcial' && !customer) {
-          alert('Para registrar venda a prazo/fiado ou pagamento parcial, é obrigatório selecionar um cliente!');
+          alert('Para registrar venda a prazo/fiado ou pagamento parcial, selecione um cliente!');
           return;
         }
 
@@ -2129,7 +2313,7 @@
           remainingDebt = Math.max(0, total - paidNow);
         }
 
-        // 1. Baixa Automática no Estoque para produtos físicos
+        // 1. Baixa no estoque para produtos físicos
         this.cart.forEach(cartItem => {
           if (cartItem.type === 'produto') {
             const stockItem = this.data.items.find(x => x.id === cartItem.id);
@@ -2139,7 +2323,7 @@
           }
         });
 
-        // 2. Lança saldo devedor para o cliente caso seja parcial/fiado
+        // 2. Registra saldo devedor
         if (remainingDebt > 0 && customer) {
           const c = this.data.customers.find(x => x.id === customer.id);
           if (c) {
@@ -2147,7 +2331,7 @@
           }
         }
 
-        // 3. Salva a Venda
+        // 3. Salva Venda
         const saleRecord = {
           id: 'VENDA-' + Date.now().toString().slice(-6),
           date: new Date().toISOString(),
@@ -2167,10 +2351,8 @@
         this.data.sales.unshift(saleRecord);
         this.saveData();
 
-        // 4. Prepara e exibe comprovante
         this.generateReceipt(saleRecord);
 
-        // Limpa carrinho e estado do PDV
         this.cart = [];
         this.clearPDVCustomer();
         document.getElementById('cartDiscount').value = '0';
@@ -2277,7 +2459,329 @@
         if (sale) this.generateReceipt(sale);
       }
 
-      // --- BACKUP & SEGURANÇA DE DADOS (.JSON) ---
+      // --- CENTRAL DE RELATÓRIOS (VENDAS, CLIENTES, ESTOQUE, TOTAL) ---
+      switchReportView(type) {
+        this.currentReport = type;
+        document.querySelectorAll('.report-tab-btn').forEach(b => b.classList.remove('active'));
+        
+        const btnMap = {
+          total: 'btnReportTotal',
+          vendas: 'btnReportVendas',
+          clientes: 'btnReportClientes',
+          estoque: 'btnReportEstoque'
+        };
+        const activeBtn = document.getElementById(btnMap[type]);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        this.renderReportView();
+      }
+
+      renderReportView() {
+        const dateStr = new Date().toLocaleString('pt-BR');
+        document.getElementById('reportSubtitle').innerText = `Gerado em: ${dateStr} | Loja: ${this.data.config.storeName}`;
+
+        const thead = document.getElementById('reportTableHead');
+        const tbody = document.getElementById('reportTableBody');
+        const cards = document.getElementById('reportCardsSummary');
+
+        if (this.currentReport === 'total') {
+          document.getElementById('reportTitle').innerText = '📊 Relatório Geral Consolidado (Total / Balanço)';
+          
+          let totalSales = 0;
+          let totalProfit = 0;
+          (this.data.sales || []).forEach(s => {
+            totalSales += s.total;
+            let costOfSale = 0;
+            s.items.forEach(it => {
+              costOfSale += (it.costPrice || 0) * it.quantity;
+            });
+            totalProfit += (s.total - costOfSale);
+          });
+
+          let totalReceivable = (this.data.customers || []).reduce((acc, c) => acc + (c.debt || 0), 0);
+          let stockCostTotal = 0;
+          let stockSaleTotal = 0;
+          let stockQtyTotal = 0;
+          (this.data.items || []).forEach(i => {
+            if (i.type === 'produto') {
+              stockCostTotal += (i.costPrice * i.quantity);
+              stockSaleTotal += (i.salePrice * i.quantity);
+              stockQtyTotal += i.quantity;
+            }
+          });
+
+          cards.innerHTML = `
+            <div class="metric-card" style="border-left-color: var(--primary);">
+              <div class="metric-title">Faturamento Total</div>
+              <div class="metric-value">${this.formatCurrency(totalSales)}</div>
+              <small class="text-muted">${this.data.sales.length} vendas registradas</small>
+            </div>
+            <div class="metric-card" style="border-left-color: var(--success);">
+              <div class="metric-title">Patrimônio em Estoque</div>
+              <div class="metric-value">${this.formatCurrency(stockSaleTotal)}</div>
+              <small class="text-muted">Custo: ${this.formatCurrency(stockCostTotal)}</small>
+            </div>
+            <div class="metric-card" style="border-left-color: var(--danger);">
+              <div class="metric-title">Total a Receber (Fiado)</div>
+              <div class="metric-value" style="color:var(--danger);">${this.formatCurrency(totalReceivable)}</div>
+              <small class="text-muted">Débitos de clientes</small>
+            </div>
+            <div class="metric-card" style="border-left-color: #8b5cf6;">
+              <div class="metric-title">Total de Clientes</div>
+              <div class="metric-value">${this.data.customers.length}</div>
+              <small class="text-muted">${stockQtyTotal} produtos físicos em estoque</small>
+            </div>
+          `;
+
+          thead.innerHTML = `
+            <tr>
+              <th>Indicador / Dimensão</th>
+              <th>Total Registrado</th>
+              <th>Status / Observação</th>
+            </tr>
+          `;
+
+          tbody.innerHTML = `
+            <tr>
+              <td><strong>Receita Bruta com Vendas</strong></td>
+              <td><strong style="color:var(--success);">${this.formatCurrency(totalSales)}</strong></td>
+              <td>Total acumulado de todas as transações</td>
+            </tr>
+            <tr>
+              <td><strong>Lucro Bruto Estimado</strong></td>
+              <td><strong style="color:var(--primary);">${this.formatCurrency(totalProfit)}</strong></td>
+              <td>Receita menos custo dos produtos vendidos</td>
+            </tr>
+            <tr>
+              <td><strong>Capital Alocado em Estoque (Custo)</strong></td>
+              <td><strong>${this.formatCurrency(stockCostTotal)}</strong></td>
+              <td>Valor investido para reposição atual</td>
+            </tr>
+            <tr>
+              <td><strong>Projeção de Venda do Estoque</strong></td>
+              <td><strong>${this.formatCurrency(stockSaleTotal)}</strong></td>
+              <td>Potencial de faturamento em prateleira</td>
+            </tr>
+            <tr>
+              <td><strong>Contas a Receber (Fiado / Pendente)</strong></td>
+              <td><strong style="color:var(--danger);">${this.formatCurrency(totalReceivable)}</strong></td>
+              <td>Crédito rotativo concedido a clientes</td>
+            </tr>
+          `;
+
+        } else if (this.currentReport === 'vendas') {
+          document.getElementById('reportTitle').innerText = '💰 Relatório Detalhado de Vendas';
+
+          const sales = this.data.sales || [];
+          const totalRevenue = sales.reduce((a, b) => a + b.total, 0);
+          const totalDiscounts = sales.reduce((a, b) => a + (b.discount || 0), 0);
+
+          cards.innerHTML = `
+            <div class="metric-card" style="border-left-color: var(--primary);">
+              <div class="metric-title">Total em Vendas</div>
+              <div class="metric-value">${this.formatCurrency(totalRevenue)}</div>
+            </div>
+            <div class="metric-card" style="border-left-color: #06b6d4;">
+              <div class="metric-title">Qtd de Vendas</div>
+              <div class="metric-value">${sales.length}</div>
+            </div>
+            <div class="metric-card" style="border-left-color: var(--warning);">
+              <div class="metric-title">Descontos Concedidos</div>
+              <div class="metric-value">${this.formatCurrency(totalDiscounts)}</div>
+            </div>
+            <div class="metric-card" style="border-left-color: var(--success);">
+              <div class="metric-title">Ticket Médio</div>
+              <div class="metric-value">${this.formatCurrency(sales.length > 0 ? totalRevenue / sales.length : 0)}</div>
+            </div>
+          `;
+
+          thead.innerHTML = `
+            <tr>
+              <th>Código</th>
+              <th>Data/Hora</th>
+              <th>Cliente</th>
+              <th>Forma Pgto</th>
+              <th>Subtotal</th>
+              <th>Desconto</th>
+              <th>Total Líquido</th>
+              <th>Situação</th>
+            </tr>
+          `;
+
+          tbody.innerHTML = sales.map(s => `
+            <tr>
+              <td><code>${s.id}</code></td>
+              <td>${new Date(s.date).toLocaleString('pt-BR')}</td>
+              <td><strong>${this.escapeHtml(s.customerName)}</strong></td>
+              <td>${s.paymentMethod}</td>
+              <td>${this.formatCurrency(s.subtotal || s.total)}</td>
+              <td>${this.formatCurrency(s.discount || 0)}</td>
+              <td><strong>${this.formatCurrency(s.total)}</strong></td>
+              <td><span class="badge ${s.paymentStatus === 'integral' ? 'badge-success' : 'badge-warning'}">${s.paymentStatus === 'integral' ? 'Quitado' : `Pendente (${this.formatCurrency(s.remainingDebt)})`}</span></td>
+            </tr>
+          `).join('');
+
+        } else if (this.currentReport === 'clientes') {
+          document.getElementById('reportTitle').innerText = '👥 Relatório de Clientes e Posição Financeira';
+
+          const customers = this.data.customers || [];
+          const totalDebt = customers.reduce((a, b) => a + (b.debt || 0), 0);
+          const debtorsCount = customers.filter(c => c.debt > 0).length;
+
+          cards.innerHTML = `
+            <div class="metric-card" style="border-left-color: var(--primary);">
+              <div class="metric-title">Total de Clientes</div>
+              <div class="metric-value">${customers.length}</div>
+            </div>
+            <div class="metric-card" style="border-left-color: var(--danger);">
+              <div class="metric-title">Clientes Devedores</div>
+              <div class="metric-value" style="color:var(--danger);">${debtorsCount}</div>
+            </div>
+            <div class="metric-card" style="border-left-color: var(--danger);">
+              <div class="metric-title">Dívida Total em Aberto</div>
+              <div class="metric-value" style="color:var(--danger);">${this.formatCurrency(totalDebt)}</div>
+            </div>
+          `;
+
+          thead.innerHTML = `
+            <tr>
+              <th>Cliente</th>
+              <th>Telefone / WhatsApp</th>
+              <th>E-mail</th>
+              <th>${this.data.config.obsLabel || 'Observação / Veículo'}</th>
+              <th>Saldo Devedor</th>
+              <th>Status</th>
+            </tr>
+          `;
+
+          tbody.innerHTML = customers.map(c => `
+            <tr>
+              <td><strong>${this.escapeHtml(c.name)}</strong></td>
+              <td>${this.escapeHtml(c.phone)}</td>
+              <td>${c.email || '-'}</td>
+              <td>${this.escapeHtml(c.obs || '-')}</td>
+              <td><strong style="color: ${c.debt > 0 ? 'var(--danger)' : 'var(--success)'};">${this.formatCurrency(c.debt || 0)}</strong></td>
+              <td><span class="badge ${c.debt > 0 ? 'badge-danger' : 'badge-success'}">${c.debt > 0 ? 'Inadimplente' : 'Em Dia'}</span></td>
+            </tr>
+          `).join('');
+
+        } else if (this.currentReport === 'estoque') {
+          document.getElementById('reportTitle').innerText = '📦 Relatório de Estoque e Catálogo de Itens';
+
+          const items = this.data.items || [];
+          const physicalItems = items.filter(i => i.type === 'produto');
+          const totalQty = physicalItems.reduce((a, b) => a + b.quantity, 0);
+          const totalCost = physicalItems.reduce((a, b) => a + (b.costPrice * b.quantity), 0);
+          const totalSale = physicalItems.reduce((a, b) => a + (b.salePrice * b.quantity), 0);
+          const lowStockCount = physicalItems.filter(i => i.quantity <= i.minQuantity).length;
+
+          cards.innerHTML = `
+            <div class="metric-card" style="border-left-color: var(--primary);">
+              <div class="metric-title">Itens Cadastrados</div>
+              <div class="metric-value">${items.length}</div>
+              <small class="text-muted">${physicalItems.length} físicos / ${items.length - physicalItems.length} serviços</small>
+            </div>
+            <div class="metric-card" style="border-left-color: #06b6d4;">
+              <div class="metric-title">Unidades em Estoque</div>
+              <div class="metric-value">${totalQty} un.</div>
+            </div>
+            <div class="metric-card" style="border-left-color: var(--success);">
+              <div class="metric-title">Valor de Venda Total</div>
+              <div class="metric-value">${this.formatCurrency(totalSale)}</div>
+              <small class="text-muted">Custo: ${this.formatCurrency(totalCost)}</small>
+            </div>
+            <div class="metric-card" style="border-left-color: var(--danger);">
+              <div class="metric-title">Itens Críticos (Baixo)</div>
+              <div class="metric-value" style="color:var(--danger);">${lowStockCount}</div>
+            </div>
+          `;
+
+          thead.innerHTML = `
+            <tr>
+              <th>Código</th>
+              <th>Nome do Item</th>
+              <th>Categoria</th>
+              <th>Tipo</th>
+              <th>Qtd Atual</th>
+              <th>Estoque Mín.</th>
+              <th>Preço Custo</th>
+              <th>Preço Venda</th>
+              <th>Total em Venda</th>
+            </tr>
+          `;
+
+          tbody.innerHTML = items.map(i => {
+            const isProd = i.type === 'produto';
+            const isLow = isProd && i.quantity <= i.minQuantity;
+            return `
+              <tr>
+                <td><code>${i.code || '-'}</code></td>
+                <td><strong>${this.escapeHtml(i.name)}</strong></td>
+                <td><small>${i.category || '-'}</small></td>
+                <td><span class="badge ${isProd ? 'badge-outline' : 'badge-primary'}">${isProd ? 'Produto' : 'Serviço'}</span></td>
+                <td><strong style="color: ${isLow ? 'var(--danger)' : 'inherit'};">${isProd ? i.quantity : 'N/A'}</strong></td>
+                <td>${isProd ? i.minQuantity : 'N/A'}</td>
+                <td>${this.formatCurrency(i.costPrice)}</td>
+                <td>${this.formatCurrency(i.salePrice)}</td>
+                <td><strong>${isProd ? this.formatCurrency(i.salePrice * i.quantity) : '-'}</strong></td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+
+      printCurrentReport() {
+        window.print();
+      }
+
+      exportCurrentReportCSV() {
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+        let fileName = `relatorio_${this.currentReport}_${new Date().toISOString().slice(0, 10)}.csv`;
+
+        if (this.currentReport === 'total') {
+          csvContent += "Indicador;Valor\n";
+          const totalSales = (this.data.sales || []).reduce((a, b) => a + b.total, 0);
+          const totalReceivable = (this.data.customers || []).reduce((acc, c) => acc + (c.debt || 0), 0);
+          const stockSaleTotal = (this.data.items || []).filter(i => i.type === 'produto').reduce((acc, i) => acc + (i.salePrice * i.quantity), 0);
+          const stockCostTotal = (this.data.items || []).filter(i => i.type === 'produto').reduce((acc, i) => acc + (i.costPrice * i.quantity), 0);
+
+          csvContent += `Receita Bruta Total;${totalSales.toFixed(2)}\n`;
+          csvContent += `Contas a Receber Fiado;${totalReceivable.toFixed(2)}\n`;
+          csvContent += `Patrimonio em Estoque (Venda);${stockSaleTotal.toFixed(2)}\n`;
+          csvContent += `Custo Total em Estoque;${stockCostTotal.toFixed(2)}\n`;
+          csvContent += `Total de Clientes Cadastrados;${this.data.customers.length}\n`;
+          csvContent += `Total de Itens Cadastrados;${this.data.items.length}\n`;
+
+        } else if (this.currentReport === 'vendas') {
+          csvContent += "ID Venda;Data;Cliente;Forma Pagamento;Subtotal;Desconto;Total;Status;Saldo Devedor\n";
+          (this.data.sales || []).forEach(s => {
+            csvContent += `"${s.id}";"${new Date(s.date).toLocaleString('pt-BR')}";"${s.customerName}";"${s.paymentMethod}";${(s.subtotal || s.total).toFixed(2)};${(s.discount || 0).toFixed(2)};${s.total.toFixed(2)};"${s.paymentStatus}";${(s.remainingDebt || 0).toFixed(2)}\n`;
+          });
+
+        } else if (this.currentReport === 'clientes') {
+          csvContent += "Nome;Telefone;Email;Observacao;Saldo Devedor;Status\n";
+          (this.data.customers || []).forEach(c => {
+            csvContent += `"${c.name}";"${c.phone}";"${c.email || ''}";"${c.obs || ''}";${(c.debt || 0).toFixed(2)};"${c.debt > 0 ? 'Inadimplente' : 'Em Dia'}"\n`;
+          });
+
+        } else if (this.currentReport === 'estoque') {
+          csvContent += "Codigo;Nome;Categoria;Tipo;Quantidade;Estoque Minimo;Preco Custo;Preco Venda;Valor Total Venda\n";
+          (this.data.items || []).forEach(i => {
+            const tot = i.type === 'produto' ? (i.salePrice * i.quantity).toFixed(2) : '0.00';
+            csvContent += `"${i.code || ''}";"${i.name}";"${i.category || ''}";"${i.type}";${i.quantity};${i.minQuantity};${i.costPrice.toFixed(2)};${i.salePrice.toFixed(2)};${tot}\n`;
+          });
+        }
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      // --- BACKUP (.JSON) ---
       exportBackup() {
         const backupData = JSON.stringify(this.data, null, 2);
         const blob = new Blob([backupData], { type: 'application/json' });
@@ -2294,7 +2798,7 @@
         const file = input.files[0];
         if (!file) return;
 
-        if (!confirm('Deseja realmente restaurar este arquivo de backup? Os dados atuais serão substituídos pelos dados do arquivo.')) {
+        if (!confirm('Deseja realmente restaurar este arquivo de backup? Os dados atuais serão substituídos pelos do arquivo.')) {
           input.value = '';
           return;
         }
@@ -2318,16 +2822,6 @@
           input.value = '';
         };
         reader.readAsText(file);
-      }
-
-      resetSystem() {
-        if (confirm('Atenção: Deseja recarregar a base com os dados iniciais de demonstração da Oficina de Bicicletas?')) {
-          localStorage.removeItem(this.storageKey);
-          this.loadData();
-          this.applyVisualSettings();
-          this.renderAll();
-          alert('Sistema resetado para dados demonstrativos com sucesso!');
-        }
       }
 
       // --- UTILITÁRIOS GERAIS ---
@@ -2364,7 +2858,6 @@
       }
     }
 
-    // Instanciação e Inicialização Global
     const app = new StoreApp();
     window.addEventListener('DOMContentLoaded', () => app.init());
   </script>
